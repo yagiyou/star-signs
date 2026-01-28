@@ -1,931 +1,1368 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Interactive Constellations • Hand Tracked</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>個人接案作品集｜Rosegold Portfolio</title>
 
-  <style>
-    :root{
-      --bg:#05060d;
-      --ink:rgba(255,255,255,.92);
-      --muted:rgba(255,255,255,.68);
-      --line:rgba(255,255,255,.14);
-      --glass:rgba(10,12,22,.62);
-      --gold:#d6b36a;
-      --shadow: 0 18px 60px rgba(0,0,0,.45);
-      --r:18px;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%; margin:0; background:var(--bg); color:var(--ink);
-      font-family:ui-sans-serif,system-ui,-apple-system,"Noto Sans TC","PingFang TC",sans-serif;
-      overflow:hidden;
-    }
+<!-- ✅ 有 JS 才加 .js class（沒 JS 也會正常顯示） -->
+<script>
+  document.documentElement.classList.add('js');
+</script>
 
-    .app{height:100%; width:100%; display:grid; grid-template-rows:auto 1fr;}
-    header{
-      position:relative;
-      z-index:20;
-      display:flex; align-items:center; justify-content:space-between;
-      padding:14px 16px;
-      border-bottom:1px solid var(--line);
-      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,0));
-    }
-    header .title{display:flex; gap:10px; align-items:baseline; min-width:0;}
-    header h1{font-size:14px; margin:0; letter-spacing:.3px; font-weight:800; white-space:nowrap;}
-    header .hint{font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:48vw;}
-    header .right{display:flex; gap:10px; align-items:center;}
-    button{
-      appearance:none; border:1px solid var(--line);
-      background:rgba(255,255,255,.06); color:var(--ink);
-      padding:8px 10px; border-radius:12px; cursor:pointer;
-      font-size:12px;
-    }
-    button:hover{background:rgba(255,255,255,.09)}
-    button:active{transform:translateY(1px)}
+<!-- 字體：襯線（標題）＋無襯線（內文） -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
 
-    .stage{position:relative; overflow:hidden;}
-    canvas#sky{width:100%; height:100%; display:block;}
+<style>
+:root{
+  --rose:#b76e79;
+  --rose2:#d6a3ad;
+  --rose-soft:#f0d9dd;
 
-    /* 攝像頭小窗（可切） */
-    video#cam{
-      position:absolute; right:12px; bottom:12px;
-      width:220px; height:140px;
-      border-radius:16px;
-      border:1px solid rgba(255,255,255,.18);
-      box-shadow:var(--shadow);
-      object-fit:cover;
-      opacity:0; pointer-events:none;
-      transform:translateY(10px);
-      transition:.25s ease;
-      background:#000;
-      z-index:15;
-    }
-    .show-cam video#cam{opacity:1; transform:translateY(0); pointer-events:auto;}
+  --text:#1f2430;
+  --muted:rgba(31,36,48,.66);
+  --line:rgba(31,36,48,.10);
 
-    /* 霧化層：點到星座時開啟 */
-    #blur-layer{
-      position:absolute; inset:0;
-      backdrop-filter: blur(14px);
-      background: rgba(5,6,13,.45);
-      opacity:0;
-      pointer-events:none;
-      transition: opacity .35s ease;
-      z-index:8;
-    }
-    #blur-layer.on{opacity:1;}
+  --bg:#ffffff;
+  --r:18px;
+  --max:1100px;
+  --shadow:0 18px 60px rgba(31,36,48,.10);
 
-    /* 中央故事卡（固定在 viewport，不跑位） */
-    .story{
-      position:fixed;
-      left:50%;
-      top:50%;
-      transform:translate(-50%,-50%) scale(.96);
-      z-index:30;
+  --serif: "Cormorant Garamond", serif;
+  --sans: system-ui,-apple-system,"Noto Sans TC","PingFang TC",sans-serif;
+}
 
-      width:min(92vw, 520px);
-      max-height:min(70vh, 560px);
-      overflow:auto;
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family: var(--sans);
+  color:var(--text);
+  background:var(--bg);
+  line-height:1.85;
+  overflow-x:hidden;
+}
 
-      background:linear-gradient(180deg, rgba(12,14,26,.86), rgba(12,14,26,.62));
-      border:1px solid rgba(255,255,255,.14);
-      border-radius:18px;
-      padding:12px 14px;
-      backdrop-filter: blur(12px);
-      box-shadow:var(--shadow);
+/* =========================
+   ✅ 進站：霧面→顯現
+========================= */
+.js body{
+  opacity: 0;
+  filter: blur(16px) saturate(.9);
+  transform: translateY(10px);
+}
+.js body.is-ready{
+  opacity: 1;
+  filter: blur(0) saturate(1);
+  transform: translateY(0);
+  transition: opacity .7s ease, filter .9s ease, transform .8s ease;
+}
 
-      opacity:0;
-      pointer-events:none;
-      transition:.35s ease;
-    }
-    .story.on{
-      opacity:1;
-      transform:translate(-50%,-50%) scale(1);
-      pointer-events:auto;
-    }
-    .story .top{
-      display:flex; align-items:center; justify-content:space-between; gap:12px;
-      margin-bottom:8px;
-    }
-    .story .name{
-      display:flex; gap:10px; align-items:center;
-      font-weight:900; letter-spacing:.4px;
-    }
-    .pill{
-      font-size:11px; color:rgba(255,255,255,.78);
-      padding:4px 8px; border-radius:999px;
-      border:1px solid rgba(255,255,255,.14);
-      background:rgba(255,255,255,.06);
-      white-space:nowrap;
-    }
-    .story p{
-      margin:0;
-      color:rgba(255,255,255,.88);
-      font-size:13px;
-      line-height:1.75;
-      white-space:pre-line;
-    }
-    .story .actions{
-      display:flex; justify-content:flex-end; margin-top:10px;
-    }
-    .story .closeBtn{
-      border:1px solid rgba(255,255,255,.14);
-      background:rgba(255,255,255,.06);
-      color:rgba(255,255,255,.9);
-      padding:8px 10px;
-      border-radius:12px;
-      cursor:pointer;
-      font-size:12px;
-    }
+/* =========================
+   ✅ LOADING（全螢幕）
+========================= */
+.loader{
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display:grid;
+  place-items:center;
+  background:
+    radial-gradient(1000px 700px at 50% 45%, rgba(240,217,221,.55), transparent 65%),
+    linear-gradient(180deg, #fff, #fff);
+  transition: opacity .5s ease, visibility .5s ease;
+}
+.loader.hide{
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+}
 
-    /* 準星 */
-    .cursor{
-      position:absolute; width:16px; height:16px; border-radius:999px;
-      border:1px solid rgba(255,255,255,.35);
-      box-shadow:0 0 0 6px rgba(255,255,255,.08);
-      transform:translate(-50%,-50%);
-      pointer-events:none;
-      opacity:0;
-      transition: opacity .12s ease;
-      z-index:12;
-    }
-    .cursor.on{opacity:1;}
-    .cursor.pinch{
-      border-color:rgba(214,179,106,.95);
-      box-shadow:0 0 0 7px rgba(214,179,106,.18);
-    }
+.loader-inner{
+  width: min(520px, 92vw);
+  display:grid;
+  place-items:center;
+  gap: 18px;
+  text-align:center;
+}
 
-    /* 底部狀態（避免擋到畫面：窄一些、可收起） */
-    .status{
-      position:absolute; left:12px; bottom:12px;
-      background:var(--glass);
-      border:1px solid rgba(255,255,255,.14);
-      border-radius:16px;
-      padding:10px 12px;
-      width:min(520px, calc(100% - 24px));
-      box-shadow:var(--shadow);
-      backdrop-filter: blur(10px);
-      z-index:14;
-    }
-    .status .row{display:flex; gap:10px; align-items:center; justify-content:space-between;}
-    .badge{
-      font-size:12px; color:var(--muted);
-      display:flex; gap:8px; align-items:center;
-      min-width:0;
-    }
-    .badge span.txt{
-      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-      max-width:56vw;
-    }
-    .dot{
-      width:8px; height:8px; border-radius:99px; background:rgba(255,255,255,.35);
-      box-shadow:0 0 0 3px rgba(255,255,255,.08);
-      flex:0 0 auto;
-    }
-    .dot.on{background:#63ff9a; box-shadow:0 0 0 3px rgba(99,255,154,.16)}
-    .dot.warn{background:#ffd36a; box-shadow:0 0 0 3px rgba(255,211,106,.16)}
-    .meta{
-      margin-top:8px;
-      font-size:12px; color:var(--muted);
-      display:flex; gap:12px; flex-wrap:wrap;
-    }
-    .meta span b{color:var(--ink); font-weight:800}
+/* 水晶：純 CSS（晶面慢慢長出玫瑰金） */
+.crystal{
+  width: 120px; height: 120px;
+  position: relative;
+  filter: drop-shadow(0 18px 30px rgba(183,110,121,.18));
+  transform-origin: 50% 60%;
+  animation: crystalFloat 2.3s ease-in-out infinite;
+}
+@keyframes crystalFloat{
+  0%,100%{ transform: translateY(0) rotate(-1deg); }
+  50%{ transform: translateY(-8px) rotate(1deg); }
+}
+.crystal::before{
+  content:"";
+  position:absolute;
+  inset: 0;
+  border-radius: 26px;
+  clip-path: polygon(50% 0%, 85% 18%, 100% 50%, 78% 100%, 22% 100%, 0% 50%, 15% 18%);
+  background:
+    radial-gradient(circle at 35% 25%, rgba(255,255,255,.95), rgba(255,255,255,0) 45%),
+    linear-gradient(135deg, rgba(220,176,185,.22), rgba(183,110,121,.10));
+  border: 1px solid rgba(183,110,121,.22);
+}
+.crystal::after{
+  content:"";
+  position:absolute;
+  inset:-2px;
+  border-radius: 26px;
+  clip-path: polygon(50% 0%, 85% 18%, 100% 50%, 78% 100%, 22% 100%, 0% 50%, 15% 18%);
+  background:
+    linear-gradient(120deg,
+      rgba(183,110,121,0) 0%,
+      rgba(183,110,121,.05) 20%,
+      rgba(214,163,173,.22) 42%,
+      rgba(183,110,121,.35) 62%,
+      rgba(183,110,121,0) 100%);
+  mix-blend-mode: multiply;
+  opacity: 0;
+  transform: scale(.98);
+  animation: growRose 1.6s ease forwards, shineSweep 1.8s ease 1.2s infinite;
+}
+@keyframes growRose{
+  0%{ opacity:0; transform: scale(.92); filter: blur(2px); }
+  100%{ opacity:1; transform: scale(1); filter: blur(0); }
+}
+@keyframes shineSweep{
+  0%{ background-position: -140px 0; }
+  100%{ background-position: 220px 0; }
+}
 
-    /* 小提示（手機時自動淡出） */
-    .tip{
-      position:absolute; top:64px; left:12px;
-      padding:10px 12px;
-      border-radius:16px;
-      border:1px solid rgba(255,255,255,.14);
-      background:rgba(255,255,255,.05);
-      color:rgba(255,255,255,.78);
-      font-size:12px;
-      max-width:min(520px, calc(100% - 24px));
-      line-height:1.6;
-      z-index:13;
-      opacity:.95;
-      transition: opacity .35s ease;
-    }
-    .tip.hide{opacity:0; pointer-events:none;}
-    .tip b{color:var(--ink)}
+.loader-title{
+  font-family: var(--serif);
+  font-weight: 700;
+  letter-spacing: .2px;
+  font-size: clamp(22px, 4vw, 34px);
+  line-height: 1.05;
+  margin:0;
+  opacity:.95;
+}
+.loader-sub{
+  margin:0;
+  color: rgba(31,36,48,.62);
+  font-weight: 800;
+  font-size: 13px;
+}
+.loader-bar{
+  width: min(380px, 82vw);
+  height: 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(31,36,48,.10);
+  background: rgba(31,36,48,.04);
+  overflow:hidden;
+}
+.loader-bar > i{
+  display:block;
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(183,110,121,.55), rgba(214,163,173,.25));
+  box-shadow: 0 10px 22px rgba(183,110,121,.10);
+}
 
-    /* 小螢幕調整 */
-    @media (max-width: 420px){
-      header .hint{display:none;}
-      video#cam{width:180px; height:120px;}
-    }
-  </style>
+/* =========================
+   背景：不重複 + 隨卷軸漂移
+========================= */
+.bg{
+  position:fixed;
+  inset:0;
+  z-index:-1;
+  pointer-events:none;
+  overflow:hidden;
+}
+.bg .layer{
+  position:absolute;
+  inset:-20%;
+  will-change: transform;
+  background-repeat:no-repeat;
+}
+.bg .l1{
+  background:
+    radial-gradient(650px 450px at 15% 18%, rgba(183,110,121,.16), transparent 68%),
+    radial-gradient(700px 500px at 85% 28%, rgba(214,163,173,.18), transparent 70%),
+    radial-gradient(560px 380px at 35% 88%, rgba(240,217,221,.40), transparent 72%);
+  background-size: cover;
+  opacity:.95;
+}
+.bg .l2{
+  background:
+    linear-gradient(120deg,
+      transparent 0%,
+      rgba(183,110,121,.08) 18%,
+      rgba(214,163,173,.12) 34%,
+      transparent 58%,
+      rgba(183,110,121,.06) 78%,
+      transparent 100%);
+  background-size: 1900px 1000px;
+  opacity:.75;
+  mix-blend-mode:multiply;
+}
+.bg .l3{
+  background:
+    radial-gradient(circle at 20% 35%, rgba(31,36,48,.04) 0 1px, transparent 2px),
+    radial-gradient(circle at 70% 55%, rgba(31,36,48,.03) 0 1px, transparent 2px),
+    radial-gradient(circle at 40% 78%, rgba(31,36,48,.03) 0 1px, transparent 2px);
+  background-size: 980px 760px;
+  opacity:.55;
+}
 
-  <!-- MediaPipe Hands -->
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+/* ===== Layout ===== */
+.wrap{
+  max-width:var(--max);
+  margin:0 auto;
+  padding: 22px 18px 100px;
+}
+
+/* ===== Topbar ===== */
+.topbar{
+  position: sticky;
+  top:0;
+  z-index: 30;
+  backdrop-filter: blur(12px);
+  background: rgba(255,255,255,.72);
+  border-bottom:1px solid var(--line);
+}
+.topbar .inner{
+  max-width:var(--max);
+  margin:0 auto;
+  padding: 12px 18px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+}
+.brand{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  user-select:none;
+}
+.mark{
+  width:34px;height:34px;border-radius:14px;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,255,255,.9), rgba(255,255,255,0) 55%),
+    linear-gradient(135deg, rgba(183,110,121,.85), rgba(214,163,173,.35));
+  border:1px solid rgba(183,110,121,.22);
+  box-shadow: 0 12px 30px rgba(183,110,121,.16);
+}
+.brand b{font-weight:950}
+.brand small{display:block;color:var(--muted);font-weight:800;font-size:12px;margin-top:2px}
+.nav{
+  display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;
+}
+.nav a{
+  text-decoration:none;
+  color:var(--muted);
+  font-weight:900;
+  font-size:13px;
+  padding:8px 10px;
+  border-radius:999px;
+  border:1px solid transparent;
+  transition: .18s ease;
+}
+.nav a:hover{
+  color:var(--text);
+  background: rgba(183,110,121,.06);
+  border-color: rgba(183,110,121,.18);
+}
+.btn{
+  text-decoration:none;
+  color:var(--text);
+  font-weight:950;
+  font-size:13px;
+  padding:9px 12px;
+  border-radius:999px;
+  border:1px solid rgba(183,110,121,.26);
+  background: linear-gradient(135deg, rgba(183,110,121,.20), rgba(214,163,173,.10));
+  box-shadow: 0 12px 30px rgba(183,110,121,.12);
+  transition: transform .18s ease, filter .18s ease;
+  white-space:nowrap;
+}
+.btn:hover{ transform: translateY(-1px); filter: brightness(1.03); }
+
+/* ===== Shared card ===== */
+.card{
+  background: rgba(255,255,255,.82);
+  border:1px solid var(--line);
+  border-radius: calc(var(--r) + 8px);
+  box-shadow: var(--shadow);
+}
+
+/* ===== Hero ===== */
+.hero{
+  margin-top: 18px;
+  position:relative;
+  overflow:hidden;
+}
+.hero::before{
+  content:"";
+  position:absolute;
+  inset:-2px;
+  background:
+    radial-gradient(620px 420px at var(--mx, 30%) var(--my, 35%), rgba(183,110,121,.14), transparent 62%),
+    radial-gradient(520px 360px at calc(var(--mx, 30%) + 30%) calc(var(--my, 35%) + 25%), rgba(214,163,173,.14), transparent 65%);
+  pointer-events:none;
+}
+.hero-inner{
+  position:relative;
+  padding: 28px 22px;
+  display:grid;
+  grid-template-columns: 1.15fr .85fr;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.pill{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding: 7px 12px;
+  border-radius:999px;
+  background: rgba(183,110,121,.08);
+  border:1px solid rgba(183,110,121,.18);
+  color: rgba(183,110,121,.95);
+  font-weight:950;
+  font-size:12px;
+  width: fit-content;
+}
+
+/* ✅ 你要的：Crystal Collection 彈跳式襯線字 */
+.hero-title{
+  margin: 12px 0 8px;
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: clamp(34px, 5.2vw, 56px);
+  line-height: 1.03;
+  letter-spacing: -.6px;
+}
+.hero-title .cc{
+  display:inline-block;
+  background: linear-gradient(135deg, rgba(183,110,121,.92), rgba(214,163,173,.55));
+  -webkit-background-clip:text;
+  background-clip:text;
+  color: transparent;
+}
+.js .hero-title{
+  transform: translateY(12px) scale(.98);
+  opacity: 0;
+}
+.js .hero-title.pop{
+  opacity:1;
+  transform: translateY(0) scale(1);
+  animation: ccPop .78s cubic-bezier(.2,.9,.2,1.2) both;
+}
+@keyframes ccPop{
+  0%{ transform: translateY(18px) scale(.92); }
+  60%{ transform: translateY(-6px) scale(1.03); }
+  100%{ transform: translateY(0) scale(1); }
+}
+
+.lead{
+  margin:0;
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 750;
+  max-width: 60ch;
+  white-space: pre-line;
+}
+.cta{
+  margin-top: 14px;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.btn-ghost{
+  background: rgba(31,36,48,.03);
+  border-color: rgba(31,36,48,.10);
+  box-shadow:none;
+}
+.btn-ghost:hover{ transform: translateY(-1px); }
+
+.profile{
+  padding: 18px;
+  display:grid;
+  gap: 12px;
+  align-content:start;
+}
+
+/* ✅ 你要的：照片左→右滑入、簡介右→左淡入 */
+.avatar{
+  display:grid;
+  grid-template-columns: 90px 1fr;
+  gap: 14px;
+  align-items:center;
+}
+.photo{
+  width:90px; height:90px;
+  border-radius: 26px;
+  border:1px solid rgba(183,110,121,.22);
+  box-shadow: 0 14px 34px rgba(183,110,121,.14);
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,255,255,.9), rgba(255,255,255,0) 55%),
+    linear-gradient(135deg, rgba(214,163,173,.65), rgba(183,110,121,.20));
+  overflow:hidden;
+  position:relative;
+}
+.photo img{
+  width:100%; height:100%;
+  object-fit:cover;
+  display:block;
+}
+
+.js .photo{
+  opacity:0;
+  transform: translateX(-28px);
+}
+.js .photo.in{
+  opacity:1;
+  transform: translateX(0);
+  transition: opacity .7s ease, transform .7s ease;
+}
+
+.avatar b{ font-size: 15px; font-weight: 1000; }
+.avatar small{ display:block; margin-top:4px; color: var(--muted); font-weight: 800; }
+
+.about-text{
+  color:var(--muted);
+  font-weight:750;
+  font-size:14px;
+  line-height:1.9;
+}
+.js .about-text{
+  opacity:0;
+  transform: translateX(22px);
+}
+.js .about-text.in{
+  opacity:1;
+  transform: translateX(0);
+  transition: opacity .8s ease .08s, transform .8s ease .08s;
+}
+
+.pills{ display:flex; flex-wrap:wrap; gap:8px; }
+.pills span{
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(31,36,48,.04);
+  border: 1px solid rgba(31,36,48,.08);
+  color: rgba(31,36,48,.78);
+  font-weight: 900;
+  font-size: 12px;
+}
+.pills span.rose{
+  background: rgba(183,110,121,.10);
+  border-color: rgba(183,110,121,.18);
+  color: rgba(183,110,121,.95);
+}
+
+.contact{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:10px;
+}
+.contact a{
+  text-decoration:none;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border:1px solid rgba(183,110,121,.18);
+  background: rgba(183,110,121,.06);
+  color: var(--text);
+  font-weight: 950;
+  font-size: 13px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  transition: .18s ease;
+}
+.contact a:hover{ transform: translateY(-1px); }
+
+/* ===== Section titles ===== */
+.section{ margin-top: 46px; }
+.section-title{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-bottom: 12px;
+}
+.section-title h2{
+  margin:0;
+  font-size: 18px;
+  font-weight: 1000;
+}
+.section-title span{
+  color: var(--muted);
+  font-weight: 800;
+  font-size: 13px;
+}
+
+/* ===== Works Gallery ===== */
+.grid{
+  display:grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 14px;
+}
+.work{
+  grid-column: span 4;
+  border-radius: calc(var(--r) + 8px);
+  border:1px solid var(--line);
+  background: rgba(255,255,255,.86);
+  box-shadow: var(--shadow);
+  overflow:hidden;
+  cursor:pointer;
+  transform-style: preserve-3d;
+  will-change: transform;
+  transition: transform .18s ease, filter .18s ease, border-color .18s ease;
+}
+.work:hover{
+  border-color: rgba(183,110,121,.22);
+  filter: brightness(1.02);
+  transform: translateY(-3px);
+}
+.thumb{
+  height: 168px;
+  background:
+    radial-gradient(520px 260px at 20% 20%, rgba(183,110,121,.16), transparent 62%),
+    radial-gradient(520px 260px at 80% 25%, rgba(214,163,173,.14), transparent 60%),
+    linear-gradient(135deg, rgba(31,36,48,.06), rgba(31,36,48,0));
+  border-bottom:1px solid rgba(31,36,48,.08);
+  position:relative;
+  overflow:hidden;
+}
+.thumb img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+.thumb .ph{
+  position:absolute;
+  inset: 14px;
+  border-radius: 16px;
+  border:1px dashed rgba(31,36,48,.16);
+  background: rgba(255,255,255,.45);
+  display:grid;
+  place-items:center;
+  color: rgba(31,36,48,.55);
+  font-weight: 900;
+  font-size: 12px;
+}
+.work-body{ padding: 14px 14px 16px; }
+.work-title{
+  margin:0 0 6px;
+  font-weight: 1000;
+  font-size: 15px;
+}
+.work-desc{
+  margin:0 0 12px;
+  color: var(--muted);
+  font-weight: 750;
+  font-size: 13px;
+  line-height: 1.75;
+  min-height: 42px;
+}
+.tags{ display:flex; gap:8px; flex-wrap:wrap; }
+.tag{
+  padding: 6px 10px;
+  border-radius:999px;
+  font-size: 12px;
+  font-weight: 900;
+  border:1px solid rgba(31,36,48,.10);
+  background: rgba(31,36,48,.03);
+  color: rgba(31,36,48,.76);
+}
+.tag.rose{
+  border-color: rgba(183,110,121,.20);
+  background: rgba(183,110,121,.08);
+  color: rgba(183,110,121,.95);
+}
+
+/* ===== Timeline ===== */
+.timeline{ margin-top: 12px; display:grid; gap: 14px; }
+.t-item{
+  display:grid;
+  grid-template-columns: 40px 1fr;
+  gap: 14px;
+  align-items:start;
+}
+.node{ display:flex; justify-content:center; position:relative; }
+.dot{
+  width:14px;height:14px;border-radius:999px;
+  background: linear-gradient(135deg, var(--rose), var(--rose2));
+  box-shadow: 0 0 0 8px rgba(183,110,121,.12);
+  border:1px solid rgba(183,110,121,.25);
+}
+.node::after{
+  content:"";
+  position:absolute;
+  top: 20px;
+  width: 2px;
+  height: 44px;
+  background: linear-gradient(180deg, rgba(183,110,121,.35), transparent);
+  border-radius: 99px;
+}
+.t-item:last-child .node::after{ display:none; }
+
+.t-card{ padding: 16px 16px 14px; }
+.t-card h3{
+  margin:0 0 4px;
+  font-size: 15px;
+  font-weight: 1000;
+}
+.meta{
+  color: rgba(183,110,121,.92);
+  font-weight: 950;
+  font-size: 12px;
+}
+.t-desc{
+  margin-top: 8px;
+  color: var(--muted);
+  font-weight: 750;
+  font-size: 13px;
+  line-height: 1.85;
+}
+
+/* ===== Reveal：保留你原本的（一般區塊） ===== */
+.reveal{ opacity:1; transform:none; }
+.js .reveal{ opacity:0; transform: translateY(14px); }
+.js .reveal.show{
+  opacity:1;
+  transform: translateY(0);
+  transition: opacity .65s ease, transform .65s ease;
+}
+
+/* ===== Modal（作品預覽） ===== */
+.modal{
+  position: fixed;
+  inset: 0;
+  background: rgba(31,36,48,.52);
+  backdrop-filter: blur(10px);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding: 18px;
+  z-index: 80;
+}
+.modal.open{ display:flex; }
+.dialog{
+  width: min(980px, 100%);
+  border-radius: calc(var(--r) + 12px);
+  background: rgba(255,255,255,.92);
+  border:1px solid rgba(31,36,48,.10);
+  box-shadow: 0 28px 90px rgba(31,36,48,.25);
+  overflow:hidden;
+  transform: translateY(10px) scale(.985);
+  opacity:0;
+  transition: transform .22s ease, opacity .22s ease;
+}
+.modal.open .dialog{ transform: translateY(0) scale(1); opacity:1; }
+.dialog-top{
+  display:flex;
+  justify-content:space-between;
+  gap: 12px;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid rgba(31,36,48,.08);
+  background: rgba(183,110,121,.05);
+}
+.dialog-top h3{ margin:0; font-size: 16px; font-weight: 1000; }
+.dialog-top small{ display:block; margin-top:6px; color: var(--muted); font-weight: 800; }
+.close{
+  width: 40px; height: 40px;
+  border-radius: 14px;
+  border:1px solid rgba(31,36,48,.10);
+  background: rgba(255,255,255,.85);
+  cursor:pointer;
+  font-weight: 1000;
+}
+.dialog-main{
+  display:grid;
+  grid-template-columns: 1.2fr .8fr;
+  gap: 14px;
+  padding: 14px;
+}
+.preview{
+  min-height: 340px;
+  border-radius: 18px;
+  border:1px solid rgba(31,36,48,.10);
+  background: rgba(31,36,48,.03);
+  overflow:hidden;
+}
+.preview img{ width:100%; height:100%; object-fit:cover; display:block; }
+.preview .ph{
+  height: 100%;
+  display:grid;
+  place-items:center;
+  color: rgba(31,36,48,.55);
+  font-weight: 950;
+}
+
+.meta-box{
+  border-radius: 18px;
+  border:1px solid rgba(31,36,48,.10);
+  background: rgba(255,255,255,.75);
+  padding: 12px;
+  display:grid;
+  gap: 10px;
+  align-content:start;
+}
+.row{
+  display:flex;
+  justify-content:space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border:1px solid rgba(31,36,48,.08);
+  background: rgba(31,36,48,.02);
+}
+.row span{ color: var(--muted); font-weight: 900; font-size: 12px; }
+.row b{ font-weight: 950; font-size: 12px; color: rgba(31,36,48,.88); }
+.meta-box a{
+  text-decoration:none;
+  text-align:center;
+  padding: 11px 12px;
+  border-radius: 14px;
+  border:1px solid rgba(183,110,121,.22);
+  background: rgba(183,110,121,.10);
+  color: var(--text);
+  font-weight: 1000;
+}
+.meta-box a:hover{ filter: brightness(1.02); }
+
+/* ===== Footer ===== */
+footer{
+  margin-top: 40px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(31,36,48,.10);
+  color: rgba(31,36,48,.55);
+  font-weight: 800;
+  font-size: 12px;
+  text-align:center;
+}
+
+/* =========================
+   ✅ 進入水晶洞確認視窗（自製）
+========================= */
+.portal{
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding: 18px;
+  background: rgba(31,36,48,.45);
+  backdrop-filter: blur(10px);
+}
+.portal.open{ display:flex; }
+.portal-card{
+  width: min(520px, 100%);
+  border-radius: calc(var(--r) + 14px);
+  background: rgba(255,255,255,.92);
+  border: 1px solid rgba(31,36,48,.10);
+  box-shadow: 0 30px 90px rgba(31,36,48,.22);
+  overflow:hidden;
+  transform: translateY(10px) scale(.99);
+  opacity:0;
+  transition: transform .22s ease, opacity .22s ease;
+}
+.portal.open .portal-card{ transform: translateY(0) scale(1); opacity:1; }
+
+.portal-top{
+  padding: 14px 16px 12px;
+  background: rgba(183,110,121,.07);
+  border-bottom: 1px solid rgba(31,36,48,.08);
+}
+.portal-top b{
+  display:block;
+  font-family: var(--serif);
+  font-size: 18px;
+  letter-spacing: .2px;
+}
+.portal-top small{
+  display:block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.portal-body{
+  padding: 14px 16px 16px;
+  display:grid;
+  gap: 12px;
+}
+.portal-actions{
+  display:flex;
+  gap: 10px;
+}
+.portal-actions button{
+  flex:1;
+  padding: 12px 12px;
+  border-radius: 14px;
+  border:1px solid rgba(31,36,48,.10);
+  background: rgba(31,36,48,.03);
+  font-weight: 950;
+  cursor:pointer;
+  transition: transform .18s ease, filter .18s ease;
+}
+.portal-actions button:hover{ transform: translateY(-1px); filter: brightness(1.02); }
+.portal-actions .yes{
+  border-color: rgba(183,110,121,.25);
+  background: rgba(183,110,121,.12);
+}
+.portal-cry{
+  display:none;
+  text-align:center;
+  font-weight: 1000;
+  color: rgba(183,110,121,.95);
+  padding: 10px 8px 0;
+}
+.portal-cry i{
+  display:block;
+  font-style: normal;
+  font-size: 42px;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.portal-cry.show{ display:block; }
+
+/* ===== RWD ===== */
+@media(max-width: 980px){
+  .hero-inner{ grid-template-columns: 1fr; }
+  .contact{ grid-template-columns: 1fr; }
+  .dialog-main{ grid-template-columns: 1fr; }
+}
+@media(max-width: 860px){
+  .work{ grid-column: span 6; }
+}
+@media(max-width: 520px){
+  .work{ grid-column: span 12; }
+  .topbar .inner{ padding: 12px 14px; }
+  .wrap{ padding: 18px 14px 90px; }
+}
+</style>
 </head>
 
 <body>
-<div class="app" id="app">
-  <header>
-    <div class="title">
-      <h1>星空手勢互動 • Constellations</h1>
-      <div class="hint">左右揮手平移｜捏合(食指+拇指)點星座</div>
+  <!-- ✅ LOADING -->
+  <div class="loader" id="loader" aria-hidden="false">
+    <div class="loader-inner">
+      <div class="crystal" aria-hidden="true"></div>
+      <h1 class="loader-title">Crystal Collection</h1>
+      <p class="loader-sub">玫瑰金水晶生成中…</p>
+      <div class="loader-bar" aria-label="loading">
+        <i id="loaderFill"></i>
+      </div>
     </div>
-    <div class="right">
-      <button id="toggleCamBtn">顯示攝像頭</button>
-      <button id="recenterBtn">回到中心</button>
+  </div>
+
+  <div class="bg" aria-hidden="true">
+    <div class="layer l1" id="bg1"></div>
+    <div class="layer l2" id="bg2"></div>
+    <div class="layer l3" id="bg3"></div>
+  </div>
+
+  <header class="topbar">
+    <div class="inner">
+      <div class="brand">
+        <div class="mark"></div>
+        <div>
+          <b>接案專用作品集</b>
+          <small>2026 · Graphic Design & website</small>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="#about">關於我</a>
+        <a href="#works">作品</a>
+        <a href="#timeline">經歷</a>
+        <a class="btn" href="https://forms.gle/H5iJQWD7HvGtMYbb7" target="_blank" rel="noreferrer">合作洽談 →</a>
+      </nav>
     </div>
   </header>
 
-  <main class="stage" id="stage">
-    <canvas id="sky"></canvas>
-    <div id="blur-layer"></div>
-    <video id="cam" playsinline muted></video>
+  <main class="wrap">
+    <!-- HERO -->
+    <section class="card hero reveal" id="top">
+      <div class="hero-inner">
+        <div>
+          <div class="pill">Crystal · Freelance Visual Designer</div>
 
-    <div class="story" id="story" aria-hidden="true">
-      <div class="top">
-        <div class="name">
-          <span id="storyName">—</span>
-          <span class="pill" id="storyTag">Constellation</span>
+          <!-- ✅ Crystal Collection 彈跳襯線 -->
+          <div class="hero-title" id="heroTitle">
+            <span class="cc">Crystal Collection</span><br/>
+            把品牌做出「辨識度」<br/>把畫面做出「信任感」
+          </div>
+
+          <p class="lead">
+整合品牌視覺與行銷策略，從 LOGO／識別／包裝到網站一條龍完成。
+熟悉 Shopline 與 HTML/CSS 前端調整，打造一致、好用、能轉換的品牌體驗。
+          </p>
+          <div class="cta">
+            <a class="btn" href="#works">看作品 ↓</a>
+            <a class="btn btn-ghost" href="https://forms.gle/H5iJQWD7HvGtMYbb7" target="_blank" rel="noreferrer">我要合作</a>
+          </div>
         </div>
-        <span class="pill">捏合 / Esc 關閉</span>
-      </div>
-      <p id="storyText">—</p>
-      <div class="actions">
-        <button class="closeBtn" id="closeStoryBtn">關閉</button>
-      </div>
-    </div>
 
-    <div class="cursor" id="cursor"></div>
+        <!-- Profile -->
+        <aside class="card profile reveal" id="about">
+          <div class="avatar">
+            <div class="photo" id="avatarPhoto" title="放你的個人照片">
+              <img src="https://yagidesign-studio.com/wp-content/uploads/2026/01/snimgJFUvbc.webp" alt="My photo">
+            </div>
+            <div>
+              <b>Crystal｜視覺設計 / 品品牌與網頁</b>
+              <small>品牌識別、一頁式形象網頁、活動頁</small>
+            </div>
+          </div>
 
-    <div class="tip" id="tip">
-      <b>操作</b>：把手放進鏡頭 → 左右揮動平移星空。<br/>
-      <b>點選</b>：食指尖靠近拇指尖「捏一下」，碰到星點就會跳出故事。
-    </div>
+          <div class="pills">
+            <span class="rose">Branding</span>
+            <span>Web Visual</span>
+            <span>Shopline</span>
+            <span>Marketing Visual</span>
+            <span>HTML/CSS 微調</span>
+          </div>
 
-    <div class="status" id="status">
-      <div class="row">
-        <div class="badge">
-          <span class="dot" id="dot"></span>
-          <span class="txt" id="statusText">等待開啟攝像頭…</span>
-        </div>
-        <div class="badge">偵測手：<b id="handState">0</b></div>
+          <div class="about-text" id="aboutText">
+我是一位擅長把品牌故事轉化為有溫度視覺的設計師，從品牌識別、包裝到網站畫面，協助品牌建立清楚且一致的形象。
+除了視覺表現，我也熟悉 Shopline 網頁設計與 HTML / CSS 微調，能讓設計真正落實在實際銷售與使用流程中。
+我相信好的設計不只是好看，而是能幫助品牌被理解、被信任，並在市場中留下記憶點。
+          </div>
+
+          <div class="contact" id="contact">
+            <a href="mailto:crystallake0701@gmail.com">Email <span>✉</span></a>
+            <a href="https://yagidesign-studio.com/category/work/" target="_blank" rel="noreferrer">作品雲端 / Behance <span>↗</span></a>
+            <a href="https://www.threads.com/@crystal.vibes_0701" target="_blank" rel="noreferrer">IG / Threads <span>↗</span></a>
+            <a href="https://forms.gle/H5iJQWD7HvGtMYbb7" target="_blank" rel="noreferrer">報價 / 合作表單 <span>↗</span></a>
+          </div>
+        </aside>
       </div>
-      <div class="meta">
-        <span>平移：<b id="panX">0</b></span>
-        <span>手勢：<b id="gesture">—</b></span>
-        <span>提示：<b id="hint2">把手放進畫面</b></span>
+    </section>
+
+    <!-- WORKS -->
+    <section class="section" id="works">
+      <div class="section-title reveal">
+        <h2>精選作品</h2>
+        <span>點卡片可開啟預覽</span>
       </div>
-    </div>
+
+      <div class="grid" id="workGrid"></div>
+    </section>
+
+    <!-- TIMELINE -->
+    <section class="section" id="timeline">
+      <div class="section-title reveal">
+        <h2>工作經歷 / 接案歷程</h2>
+        <span>總年資：6–7 年</span>
+      </div>
+
+      <div class="timeline" id="timelineList"></div>
+    </section>
+
+    <footer>© <span id="year"></span> Crystal 保留一切權利。</footer>
   </main>
-</div>
+
+  <!-- Modal -->
+  <div class="modal" id="modal" aria-hidden="true">
+    <div class="dialog" role="dialog" aria-modal="true">
+      <div class="dialog-top">
+        <div>
+          <h3 id="mTitle">作品標題</h3>
+          <small id="mSub">分類 · 年份 · 角色</small>
+        </div>
+        <button class="close" id="mClose">✕</button>
+      </div>
+
+      <div class="dialog-main">
+        <div class="preview" id="mPreview">
+          <div class="ph">放大預覽（可放作品圖片）</div>
+        </div>
+
+        <div class="meta-box">
+          <div class="row"><span>亮點</span><b id="mHighlight">—</b></div>
+          <div class="row"><span>交付</span><b id="mDeliver">—</b></div>
+          <div class="row"><span>工具</span><b id="mTools">—</b></div>
+          <div class="row"><span>說明</span><b id="mDesc">—</b></div>
+          <a href="#" target="_blank" rel="noreferrer" id="mLink">查看作品連結 →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✅ 進入水晶洞確認視窗 -->
+  <div class="portal" id="portal" aria-hidden="true">
+    <div class="portal-card">
+      <div class="portal-top">
+        <b>你確定好進入水晶洞的世界一探究竟嗎？</b>
+        <small>Yes 進入作品區 · No 先不要（哭哭一下）</small>
+      </div>
+      <div class="portal-body">
+        <div class="portal-actions">
+          <button class="yes" id="portalYes">Yes，我準備好了 ✨</button>
+          <button id="portalNo">No…我還在猶豫</button>
+        </div>
+        <div class="portal-cry" id="portalCry">
+          <i>🥺</i>
+          嗚嗚…那我先帶你去 Google…
+        </div>
+      </div>
+    </div>
+  </div>
 
 <script>
-(() => {
-  const app = document.getElementById('app');
-  const stage = document.getElementById('stage');
-  const canvas = document.getElementById('sky');
-  const ctx = canvas.getContext('2d');
-
-  const video = document.getElementById('cam');
-  const toggleCamBtn = document.getElementById('toggleCamBtn');
-  const recenterBtn = document.getElementById('recenterBtn');
-
-  const blurLayer = document.getElementById('blur-layer');
-  const storyEl = document.getElementById('story');
-  const storyNameEl = document.getElementById('storyName');
-  const storyTextEl = document.getElementById('storyText');
-  const storyTagEl = document.getElementById('storyTag');
-  const closeStoryBtn = document.getElementById('closeStoryBtn');
-
-  const cursorEl = document.getElementById('cursor');
-  const tipEl = document.getElementById('tip');
-
-  const dotEl = document.getElementById('dot');
-  const statusTextEl = document.getElementById('statusText');
-  const handStateEl = document.getElementById('handState');
-  const panXEl = document.getElementById('panX');
-  const gestureEl = document.getElementById('gesture');
-  const hint2El = document.getElementById('hint2');
-
-  // ====== Canvas RWD / DPR ======
-  function resize(){
-    const dpr = Math.max(1, window.devicePixelRatio || 1);
-    canvas.width = Math.floor(canvas.clientWidth * dpr);
-    canvas.height = Math.floor(canvas.clientHeight * dpr);
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-  }
-  const ro = new ResizeObserver(resize);
-  ro.observe(canvas);
-  resize();
-
-  // ====== 星點背景 ======
-  const stars = [];
-  function initStars(){
-    stars.length = 0;
-    const w = canvas.clientWidth, h = canvas.clientHeight;
-    const count = Math.floor((w*h) / 12000); // 稍微多一點但仍省
-    for(let i=0;i<count;i++){
-      stars.push({
-        x: Math.random()*w,
-        y: Math.random()*h,
-        r: Math.random()*1.4 + 0.2,
-        a: Math.random()*0.55 + 0.18
-      });
-    }
-  }
-  initStars();
-  window.addEventListener('resize', initStars);
-
-  // ====== 星座資料（可自行加） ======
-  const constellations = [
+/* =========================
+   ✅ 你只要改這兩區
+========================= */
+const works = [
   {
-    id:'aries', name:'牡羊座', tag:'火象 • 開端',
-    story:`你點燃第一束火，世界才開始有方向。
-跌倒不是失敗，是你在測試勇氣的邊界。
-當你再踏一步，星空就為你讓路。`,
-    points:[[-70,-20],[-20,-40],[10,-10],[40,-25],[70,-5]],
-    anchor:{x: 220, y: 220},
-    active:false
+    title:"品牌識別｜LOGO & 規範",
+    year:"2026",
+    cat:"Branding",
+    role:"Logo · VI System",
+    highlight:"建立可延展的識別系統，讓品牌更一致",
+    deliver:"Logo / Guideline / Social Kit",
+    tools:"Illustrator · Figma",
+    desc:"以留白與玫瑰金建立高級感，延伸到名片與社群模板。",
+    link:"#",
+    thumb:"images/work01.jpg"
   },
   {
-    id:'taurus', name:'金牛座', tag:'土象 • 守護',
-    story:`你把混亂收進掌心，換成踏實的重量。
-慢不是遲鈍，是你在選擇更久的答案。
-你守住的，最後都會長成幸福。`,
-    points:[[-60,10],[-20,-10],[10,10],[40,-20],[70,0]],
-    anchor:{x: 520, y: 320},
-    active:false
+    title:"互動一頁式形象網頁｜攝影師作品集",
+    year:"2026",
+    cat:"Web Visual",
+    role:"interactive web",
+    highlight:"透過抽卡牌的方式，讓人一進來網頁，就覺得很新奇，想繼續一探究竟。",
+    deliver:"一頁式形象網頁",
+    tools:"HTML / CSS / JS / RWD · GitHub",
+    desc:"用特殊的塔羅牌抽卡方式引導瀏覽，提高使用者的興趣。",
+    link:"https://yagiyou.github.io/haruka-ph/",
+    thumb:"images/work02.png"
   },
   {
-    id:'gemini', name:'雙子座', tag:'風象 • 兩面',
-    story:`你用兩種語言和世界對話：一半真心，一半玩笑。
-每個轉身都像新劇本，卻都在找同一個自己。
-當你安靜下來，星星就會替你說完。`,
-    points:[[-50,-30],[-30,10],[-10,-10],[10,20],[30,-15],[55,5]],
-    anchor:{x: 820, y: 210},
-    active:false
+    title:"簡易型網頁｜線上菜單",
+    year:"2026",
+    cat:"Website Design",
+    role:"客製化一頁式網站",
+    highlight:"幫小型居酒屋，打造實用又符合店家風格的網頁。",
+    deliver:"一頁式網站",
+    tools:"HTML / CSS / JS / RWD · GitHub",
+    desc:"針對小型店家，一頁式網站能讓客人一目了然、操作方便，同時保留店家風格。",
+    link:"https://yagiyou.github.io/SUISEI-CLUB/",
+    thumb:"images/work01.png"
   },
   {
-    id:'cancer', name:'巨蟹座', tag:'水象 • 月光',
-    story:`你不是脆弱，只是記得太清楚。
-你用溫柔圍起世界，保護那些重要的名字。
-當你願意抬頭，月亮一直都在。`,
-    points:[[-40,-10],[-10,-30],[20,-10],[40,10],[10,30],[-20,20]],
-    anchor:{x: 1100, y: 320},
-    active:false
+    title:"包裝設計｜商品系列",
+    year:"2025",
+    cat:"Packaging",
+    role:"Packaging · Layout",
+    highlight:"用一致視覺規則，把小商品做出品牌感",
+    deliver:"Package / Label / Mockup",
+    tools:"Illustrator · Photoshop",
+    desc:"從主視覺到品項差異建立系統化邏輯。",
+    link:"#",
+    thumb:"images/work04.jpg"
   },
   {
-    id:'leo', name:'獅子座', tag:'火象 • 光',
-    story:`你不是在追光，你本來就是光。
-有人看見你的耀眼，也有人害怕你的坦白。
-別收起王冠，溫柔也能很有力量。`,
-    points:[[-65,0],[-30,-30],[0,-10],[25,-35],[55,-5],[25,20],[-5,25]],
-    anchor:{x: 360, y: 520},
-    active:false
+    title:"網站視覺｜版面美化",
+    year:"2025",
+    cat:"Web Visual",
+    role:"Web Visual · CSS",
+    highlight:"不改系統也能讓網站質感大升級",
+    deliver:"UI polish / Component style",
+    tools:"HTML · CSS",
+    desc:"用一致的間距、字級、按鈕與卡片規則，讓整站更乾淨。",
+    link:"#",
+    thumb:"images/work05.jpg"
   },
   {
-    id:'virgo', name:'處女座', tag:'土象 • 細節',
-    story:`你把世界拆解，是為了重新拼好。
-你在細節裡藏著溫柔，只是不張揚。
-當你放過自己，秩序會變成祝福。`,
-    points:[[-50,-20],[-20,-10],[0,-30],[25,-5],[45,-25],[65,0]],
-    anchor:{x: 640, y: 520},
-    active:false
-  },
-  {
-    id:'libra', name:'天秤座', tag:'風象 • 平衡',
-    story:`你站在選擇的中央，替世界衡量重量。
-你不是猶豫，是想讓每個人都被善待。
-當你傾聽內心，答案會自然傾斜。`,
-    points:[[-60,0],[-30,-20],[0,0],[30,-20],[60,0]],
-    anchor:{x: 920, y: 520},
-    active:false
-  },
-  {
-    id:'scorpio', name:'天蠍座', tag:'水象 • 深海',
-    story:`你把秘密藏得很深，是因為你很在乎。
-你愛得像海，安靜卻能改變地形。
-當你願意信任，夜就會變成路。`,
-    points:[[-70,-5],[-35,-25],[-5,-5],[25,-20],[55,-5],[70,15]],
-    anchor:{x: 1200, y: 520},
-    active:false
-  },
-  {
-    id:'sagittarius', name:'射手座', tag:'火象 • 遠方',
-    story:`你相信世界不只一種答案。
-你走得很遠，只為確認自由是真的。
-當你回頭，故事已經跟上你了。`,
-    points:[[-60,-10],[-20,-30],[10,-10],[30,10],[60,30]],
-    anchor:{x: 380, y: 740},
-    active:false
-  },
-  {
-    id:'capricorn', name:'摩羯座', tag:'土象 • 山',
-    story:`你慢慢往上走，不急著被看見。
-你相信時間，因為你站得夠久。
-當你抵達時，世界已為你讓位。`,
-    points:[[-60,20],[-30,0],[0,20],[30,0],[60,20]],
-    anchor:{x: 660, y: 740},
-    active:false
-  },
-  {
-    id:'aquarius', name:'水瓶座', tag:'風象 • 未來',
-    story:`你走在時間前面，所以顯得不同。
-你帶來新的問題，也帶來新的出口。
-當世界準備好，你早已在那裡。`,
-    points:[[-60,-10],[-30,10],[0,-10],[30,10],[60,-10]],
-    anchor:{x: 940, y: 740},
-    active:false
-  },
-  {
-    id:'pisces', name:'雙魚座', tag:'水象 • 夢',
-    story:`你分不清現實與夢，因為你同時活在兩邊。
-你用感受理解世界，而不是語言。
-當你閉上眼，星海會替你說話。`,
-    points:[[-50,-20],[-20,0],[0,-20],[20,0],[50,-20]],
-    anchor:{x: 1220, y: 740},
-    active:false
+    title:"角色插畫｜品牌貼圖",
+    year:"2025",
+    cat:"Illustration",
+    role:"Character · Stickers",
+    highlight:"同一角色多表情多動作，保持一致辨識",
+    deliver:"Sticker set / Assets",
+    tools:"Procreate · Illustrator",
+    desc:"適合社群與行銷使用的角色素材組。",
+    link:"#",
+    thumb:"images/work06.jpg"
   }
 ];
 
+const timelineItems = [
+  { date:"2024/9~在職中", title:"保衛站行銷部｜商業設計", desc:"美化公司官網、優化品牌識別，以商業目標為核心，做出一致、好讀、好轉換的視覺。" },
+  { date:"2021/5~2024/8", title:"山羊視覺設計｜視覺設計", desc:"與客戶溝通並以同理心理解需求，協助解決設計問題，並與合作夥伴共同完成專案。" },
+  { date:"2020/3~2021/4", title:"集美生技｜平面設計", desc:"品牌 VIS、禮盒包裝、展場設計規劃，以及每月商業廣告圖與包裝設計。" }
+];
 
-  // ====== 世界平移：慣性 + 邊界回彈 ======
-  let panX = 0;
-  let panVX = 0;
+/* =========================
+   Utilities
+========================= */
+function escapeHTML(str){
+  return String(str ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+function safeImg(src, alt){
+  const s = escapeHTML(src);
+  const a = escapeHTML(alt);
+  return `<img src="${s}" alt="${a}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=ph>圖片讀不到：${s}</div>';">`;
+}
 
-  const PAN_LIMIT = 900;   // 你可調大/小：可滑動總寬
-  const FRICTION = 0.88;   // 慣性衰減
-  const SPRING = 0.08;     // 回彈力
-  const MAX_V = 28;        // 最大速度保護
+/* =========================
+   Render Works
+========================= */
+const grid = document.getElementById("workGrid");
+function tagRose(text){ return `<span class="tag rose">${escapeHTML(text)}</span>`; }
+function workHTML(w, idx){
+  const thumb = (w.thumb && String(w.thumb).trim())
+    ? safeImg(w.thumb, w.title)
+    : `<div class="ph">請填入：thumb:"images/work01.jpg"</div>`;
+  return `
+    <article class="work reveal" data-idx="${idx}">
+      <div class="thumb">${thumb}</div>
+      <div class="work-body">
+        <h3 class="work-title">${escapeHTML(w.title)}</h3>
+        <p class="work-desc">${escapeHTML(w.highlight)}</p>
+        <div class="tags">
+          ${tagRose(w.cat)}
+          <span class="tag">${escapeHTML(w.year)}</span>
+          <span class="tag">${escapeHTML(w.role)}</span>
+        </div>
+      </div>
+    </article>
+  `;
+}
+grid.innerHTML = works.map(workHTML).join("");
 
-  function updatePan(){
-    panX += panVX;
-    panVX *= FRICTION;
+/* =========================
+   Render Timeline
+========================= */
+const t = document.getElementById("timelineList");
+t.innerHTML = timelineItems.map(item => `
+  <div class="t-item reveal">
+    <div class="node"><div class="dot"></div></div>
+    <article class="card t-card">
+      <h3>${escapeHTML(item.title)}</h3>
+      <div class="meta">${escapeHTML(item.date)}</div>
+      <div class="t-desc">${escapeHTML(item.desc)}</div>
+    </article>
+  </div>
+`).join("");
 
-    // 邊界回彈（橡皮筋）
-    if(panX > PAN_LIMIT){
-      panVX += (PAN_LIMIT - panX) * SPRING;
-    }else if(panX < -PAN_LIMIT){
-      panVX += (-PAN_LIMIT - panX) * SPRING;
-    }
-
-    // 小於門檻就停
-    if(Math.abs(panVX) < 0.02) panVX = 0;
+/* =========================
+   Reveal on scroll（含 fallback）
+========================= */
+(function setupReveal(){
+  const targets = document.querySelectorAll(".reveal");
+  if(!("IntersectionObserver" in window)){
+    targets.forEach(el => el.classList.add("show"));
+    return;
   }
-
-  // ====== 游標與手勢狀態 ======
-  let cursor = {x: 0, y: 0, on:false, pinch:false};
-  let lastPalmX = null;
-  let waveEnergy = 0;
-
-  let pinchDown = false;
-  let pinchCooldown = 0;
-
-  // 點到星座後「鎖定」世界，避免你說的抖動跑位
-  let locked = false;
-  let activeConstellation = null;
-
-  // ====== 粒子（星塵散開） ======
-  const particles = [];
-  function explode(x,y){
-    for(let i=0;i<22;i++){
-      particles.push({
-        x,y,
-        vx:(Math.random()-.5)*3.2,
-        vy:(Math.random()-.5)*3.2,
-        life:42
-      });
-    }
-  }
-  function drawParticles(){
-    for(let i=particles.length-1;i>=0;i--){
-      const p = particles[i];
-      p.x += p.vx;
-      p.y += p.vy;
-      p.vx *= 0.98;
-      p.vy *= 0.98;
-      p.life--;
-
-      ctx.globalAlpha = Math.max(0, p.life/42);
-      ctx.fillStyle = 'rgba(214,179,106,1)';
-      ctx.beginPath();
-      ctx.arc(p.x,p.y,1.35,0,Math.PI*2);
-      ctx.fill();
-
-      if(p.life<=0) particles.splice(i,1);
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  // ====== UI 狀態 ======
-  function setStatus(state, msg){
-    if(state === 'on'){ dotEl.className = 'dot on'; }
-    else if(state === 'warn'){ dotEl.className = 'dot warn'; }
-    else { dotEl.className = 'dot'; }
-    statusTextEl.textContent = msg;
-  }
-
-  // ====== 繪圖 helpers ======
-  function wrap(x, offset, w, margin){
-    let v = x + offset;
-    const span = w + margin*2;
-    v = ((v + margin) % span + span) % span - margin;
-    return v;
-  }
-  function worldToScreen(x,y){
-    return {x: x + panX, y};
-  }
-
-  function drawConstellation(c){
-    const ax = c.anchor.x;
-    const ay = c.anchor.y;
-
-    // 線（一般/亮起）
-    ctx.beginPath();
-    c.points.forEach((p, i) => {
-      const x = ax + p[0];
-      const y = ay + p[1];
-      if(i===0) ctx.moveTo(x,y);
-      else ctx.lineTo(x,y);
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(en=>{
+      if(en.isIntersecting){
+        en.target.classList.add("show");
+        io.unobserve(en.target);
+      }
     });
-
-    if(c.active){
-      ctx.strokeStyle = 'rgba(214,179,106,.95)';
-      ctx.lineWidth = 1.8;
-      ctx.shadowColor = 'rgba(214,179,106,.55)';
-      ctx.shadowBlur = 10;
-    }else{
-      ctx.strokeStyle = 'rgba(255,255,255,.25)';
-      ctx.lineWidth = 1;
-      ctx.shadowBlur = 0;
-    }
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-
-    // 星點
-    for(const p of c.points){
-      const x = ax + p[0];
-      const y = ay + p[1];
-      ctx.fillStyle = c.active ? 'rgba(255,255,255,.98)' : 'rgba(255,255,255,.92)';
-      ctx.beginPath();
-      ctx.arc(x,y,2.2,0,Math.PI*2);
-      ctx.fill();
-
-      // 亮起時加一圈淡光
-      if(c.active){
-        ctx.globalAlpha = 0.22;
-        ctx.beginPath();
-        ctx.arc(x,y,6.5,0,Math.PI*2);
-        ctx.fillStyle = 'rgba(214,179,106,1)';
-        ctx.fill();
-        ctx.globalAlpha = 1;
-      }
-    }
-
-    // 名字（淡）
-    ctx.fillStyle = 'rgba(255,255,255,.45)';
-    ctx.font = '12px ui-sans-serif,system-ui,-apple-system,"Noto Sans TC","PingFang TC",sans-serif';
-    ctx.fillText(c.name, ax - 12, ay - 46);
-  }
-
-  function hitTestConstellation(screenX, screenY){
-    for(const c of constellations){
-      const a = worldToScreen(c.anchor.x, c.anchor.y);
-      // 星座大概範圍
-      const dx = screenX - a.x;
-      const dy = screenY - a.y;
-      const r = 95;
-      if(dx*dx + dy*dy > r*r) continue;
-
-      // 星點精準命中
-      for(const p of c.points){
-        const px = a.x + p[0];
-        const py = a.y + p[1];
-        const ddx = screenX - px;
-        const ddy = screenY - py;
-        if(ddx*ddx + ddy*ddy < 18*18) return c;
-      }
-    }
-    return null;
-  }
-
-  // ====== 故事卡 ======
-  function showStory(c){
-    storyNameEl.textContent = c.name;
-    storyTagEl.textContent = c.tag || 'Constellation';
-    storyTextEl.textContent = c.story;
-
-    storyEl.classList.add('on');
-    storyEl.setAttribute('aria-hidden','false');
-    blurLayer.classList.add('on');
-
-    locked = true;
-    activeConstellation = c;
-
-    // 停止慣性，避免你說的「註解跑位 / 抖動」
-    panVX = 0;
-  }
-
-  function hideStory(){
-    storyEl.classList.remove('on');
-    storyEl.setAttribute('aria-hidden','true');
-    blurLayer.classList.remove('on');
-
-    locked = false;
-    activeConstellation = null;
-    constellations.forEach(x=>x.active=false);
-  }
-
-  closeStoryBtn.addEventListener('click', hideStory);
-  window.addEventListener('keydown', (e) => {
-    if(e.key === 'Escape') hideStory();
-  });
-
-  // ====== Tip：幾秒後自動淡出（避免手機擋住） ======
-  let tipTimer = 0;
-  function pokeTip(){
-    tipTimer = 220; // frames
-    tipEl.classList.remove('hide');
-  }
-  function updateTip(){
-    if(tipTimer>0) tipTimer--;
-    else tipEl.classList.add('hide');
-  }
-
-  // ====== 主要 draw loop ======
-  function draw(){
-    const w = canvas.clientWidth, h = canvas.clientHeight;
-
-    ctx.clearRect(0,0,w,h);
-
-    // 背景微光漸層
-    const g = ctx.createRadialGradient(w*0.5, h*0.35, 40, w*0.5, h*0.5, Math.max(w,h));
-    g.addColorStop(0,'rgba(255,255,255,0.045)');
-    g.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle = g;
-    ctx.fillRect(0,0,w,h);
-
-    // 世界層（受 panX 影響）
-    ctx.save();
-    ctx.translate(panX, 0);
-
-    // 星點（循環）
-    for(const s of stars){
-      const x = wrap(s.x, -panX, w, 240);
-      const y = s.y;
-      ctx.globalAlpha = s.a;
-      ctx.fillStyle = 'white';
-      ctx.beginPath();
-      ctx.arc(x, y, s.r, 0, Math.PI*2);
-      ctx.fill();
-    }
-    ctx.globalAlpha = 1;
-
-    // 星座
-    for(const c of constellations){
-      drawConstellation(c);
-    }
-
-    ctx.restore();
-
-    // 粒子在螢幕座標（不跟 panX）
-    drawParticles();
-
-    // 游標
-    if(cursor.on){
-      cursorEl.style.left = cursor.x + 'px';
-      cursorEl.style.top = cursor.y + 'px';
-      cursorEl.classList.toggle('on', true);
-      cursorEl.classList.toggle('pinch', !!cursor.pinch);
-    }else{
-      cursorEl.classList.toggle('on', false);
-    }
-
-    // 更新 pan（若鎖定就不動）
-    if(!locked) updatePan();
-
-    // UI
-    panXEl.textContent = Math.round(panX);
-    if(pinchCooldown>0) pinchCooldown--;
-
-    updateTip();
-
-    requestAnimationFrame(draw);
-  }
-
-  // ====== MediaPipe Hands ======
-  let camera = null;
-
-  async function start(){
-    setStatus('warn','請允許攝像頭權限，正在啟動手勢追蹤…');
-    hint2El.textContent = '允許攝像頭權限';
-    pokeTip();
-
-    const hands = new Hands({
-      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-    });
-
-    hands.setOptions({
-      maxNumHands: 1,
-      modelComplexity: 0,
-      minDetectionConfidence: 0.6,
-      minTrackingConfidence: 0.6
-    });
-
-    hands.onResults(onResults);
-
-    camera = new Camera(video, {
-      onFrame: async () => {
-        await hands.send({image: video});
-      },
-      width: 640,
-      height: 480
-    });
-
-    try{
-      await camera.start();
-      setStatus('on','已開啟攝像頭：左右揮手平移｜捏合點星座');
-      hint2El.textContent = '揮手/捏合試試看';
-    }catch(err){
-      console.error(err);
-      setStatus('warn','無法啟動攝像頭。請用 https / localhost，或確認權限。');
-      hint2El.textContent = '無法開啟';
-    }
-  }
-
-  function onResults(res){
-    const lm = res.multiHandLandmarks && res.multiHandLandmarks[0];
-
-    if(!lm){
-      handStateEl.textContent = '0';
-      gestureEl.textContent = '—';
-      cursor.on = false;
-      lastPalmX = null;
-      waveEnergy *= 0.9;
-
-      if(!locked){
-        setStatus('on','已開啟攝像頭：請把手放進畫面');
-        hint2El.textContent = '把手放進畫面';
-      }
-      return;
-    }
-
-    handStateEl.textContent = '1';
-    cursor.on = true;
-
-    // 关键点：食指尖(8)、拇指尖(4)、手腕(0)
-    const indexTip = lm[8];
-    const thumbTip = lm[4];
-    const wrist = lm[0];
-
-    const w = canvas.clientWidth, h = canvas.clientHeight;
-
-    // 游標（鏡像）
-    const cx = (1 - indexTip.x) * w;
-    const cy = indexTip.y * h;
-
-    // 平滑
-    cursor.x = cursor.x * 0.7 + cx * 0.3;
-    cursor.y = cursor.y * 0.7 + cy * 0.3;
-
-    // 揮手平移（未鎖定才允許）
-    const palmX = (1 - wrist.x) * w;
-    if(!locked){
-      if(lastPalmX != null){
-        const dx = palmX - lastPalmX;
-        const thresh = 2.2;
-        if(Math.abs(dx) > thresh){
-          // 加速度到 panVX
-          panVX += dx * 0.06;
-          if(panVX > MAX_V) panVX = MAX_V;
-          if(panVX < -MAX_V) panVX = -MAX_V;
-          waveEnergy = Math.min(1, waveEnergy + 0.08);
-        }else{
-          waveEnergy *= 0.92;
-        }
-      }
-      lastPalmX = palmX;
-    }else{
-      lastPalmX = null;
-    }
-
-    // pinch（食指尖 vs 拇指尖距離）
-    const dxp = (indexTip.x - thumbTip.x);
-    const dyp = (indexTip.y - thumbTip.y);
-    const dist = Math.sqrt(dxp*dxp + dyp*dyp);
-
-    const pinch = dist < 0.055;
-    cursor.pinch = pinch;
-
-    // UI 文案
-    if(locked){
-      gestureEl.textContent = pinch ? '捏合(可關閉)' : '已鎖定';
-      hint2El.textContent = '捏合或按 Esc 關閉';
-    }else{
-      if(pinch){
-        gestureEl.textContent = '捏合(點一下)';
-        hint2El.textContent = '把準星靠近星點';
-      }else{
-        gestureEl.textContent = waveEnergy > 0.35 ? '揮手(平移中)' : '追蹤中';
-        hint2El.textContent = '左右揮手移動星空';
-      }
-    }
-
-    // 觸發：pinch 從 false -> true
-    if(!pinchDown && pinch && pinchCooldown === 0){
-      pinchDown = true;
-      pinchCooldown = 18;
-
-      // 若正在開啟故事 → pinch 視為關閉
-      if(locked){
-        hideStory();
-        pokeTip();
-        return;
-      }
-
-      // 點選命中
-      const hit = hitTestConstellation(cursor.x, cursor.y);
-      if(hit){
-        // 亮起 + 星塵爆開
-        constellations.forEach(c=>c.active=false);
-        hit.active = true;
-        explode(cursor.x, cursor.y);
-
-        setStatus('on', `命中 ${hit.name}：背景霧化並顯示故事`);
-        showStory(hit);
-
-        // 點到就把 tip 收起一點
-        tipEl.classList.add('hide');
-      }else{
-        setStatus('on','沒點到星座：再靠近某顆星點捏一下');
-        pokeTip();
-      }
-    }
-    if(!pinch) pinchDown = false;
-  }
-
-  // ====== UI buttons ======
-  toggleCamBtn.addEventListener('click', () => {
-    app.classList.toggle('show-cam');
-    toggleCamBtn.textContent = app.classList.contains('show-cam') ? '隱藏攝像頭' : '顯示攝像頭';
-  });
-
-  recenterBtn.addEventListener('click', () => {
-    if(locked) return;
-    panX = 0; panVX = 0;
-  });
-
-  // ====== 滑鼠/觸控 fallback（方便你測試） ======
-  // 若手勢抓不到，也能拖曳平移、點擊星座開故事
-  let dragging = false;
-  let lastX = 0;
-  canvas.addEventListener('pointerdown', (e) => {
-    if(locked) return;
-    dragging = true;
-    lastX = e.clientX;
-    canvas.setPointerCapture(e.pointerId);
-  });
-  canvas.addEventListener('pointermove', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    cursor.on = true;
-    cursor.x = e.clientX - rect.left;
-    cursor.y = e.clientY - rect.top;
-    if(locked) return;
-
-    if(dragging){
-      const dx = e.clientX - lastX;
-      lastX = e.clientX;
-      panVX += dx * 0.25;
-      if(panVX > MAX_V) panVX = MAX_V;
-      if(panVX < -MAX_V) panVX = -MAX_V;
-    }
-  });
-  canvas.addEventListener('pointerup', (e) => {
-    dragging = false;
-    canvas.releasePointerCapture(e.pointerId);
-  });
-  canvas.addEventListener('click', (e) => {
-    if(locked) return;
-    const hit = hitTestConstellation(cursor.x, cursor.y);
-    if(hit){
-      constellations.forEach(c=>c.active=false);
-      hit.active = true;
-      explode(cursor.x, cursor.y);
-      showStory(hit);
-      setStatus('on', `命中 ${hit.name}：背景霧化並顯示故事`);
-      tipEl.classList.add('hide');
-    }
-  });
-
-  // 點霧化層也能關閉
-  blurLayer.addEventListener('click', () => {
-    if(locked) hideStory();
-  });
-
-  // ====== init ======
-  draw();
-  start();
+  },{ threshold: 0.12 });
+  targets.forEach(el => io.observe(el));
 })();
+
+/* =========================
+   Hero mouse glow（安全判斷）
+========================= */
+const hero = document.querySelector(".hero");
+if(hero){
+  hero.addEventListener("mousemove",(e)=>{
+    const r = hero.getBoundingClientRect();
+    const mx = ((e.clientX - r.left) / r.width) * 100;
+    const my = ((e.clientY - r.top) / r.height) * 100;
+    hero.style.setProperty("--mx", mx + "%");
+    hero.style.setProperty("--my", my + "%");
+  });
+}
+
+/* =========================
+   Background scroll parallax（安全判斷）
+========================= */
+const bg1 = document.getElementById("bg1");
+const bg2 = document.getElementById("bg2");
+const bg3 = document.getElementById("bg3");
+let raf=null;
+function onScroll(){
+  if(!bg1 || !bg2 || !bg3) return;
+  if(raf) return;
+  raf = requestAnimationFrame(()=>{
+    const y = window.scrollY || 0;
+    bg1.style.transform = `translate3d(0, ${y * -0.06}px, 0)`;
+    bg2.style.transform = `translate3d(0, ${y * -0.10}px, 0)`;
+    bg3.style.transform = `translate3d(0, ${y * -0.03}px, 0)`;
+    raf=null;
+  });
+}
+window.addEventListener("scroll", onScroll, {passive:true});
+onScroll();
+
+/* =========================
+   Modal
+========================= */
+const modal = document.getElementById("modal");
+const mClose = document.getElementById("mClose");
+const mTitle = document.getElementById("mTitle");
+const mSub = document.getElementById("mSub");
+const mPreview = document.getElementById("mPreview");
+const mHighlight = document.getElementById("mHighlight");
+const mDeliver = document.getElementById("mDeliver");
+const mTools = document.getElementById("mTools");
+const mDesc = document.getElementById("mDesc");
+const mLink = document.getElementById("mLink");
+
+function openModal(w){
+  if(!modal) return;
+  modal.classList.add("open");
+  modal.setAttribute("aria-hidden","false");
+  document.body.style.overflow="hidden";
+
+  mTitle.textContent = w.title || "作品";
+  mSub.textContent = `${w.cat || ""} · ${w.year || ""} · ${w.role || ""}`.replaceAll("  "," ").trim();
+  mHighlight.textContent = w.highlight || "—";
+  mDeliver.textContent = w.deliver || "—";
+  mTools.textContent = w.tools || "—";
+  mDesc.textContent = w.desc || "—";
+  mLink.href = w.link || "#";
+  mLink.style.opacity = w.link && w.link !== "#" ? 1 : .5;
+
+  if(w.thumb){
+    mPreview.innerHTML = safeImg(w.thumb, w.title);
+  }else{
+    mPreview.innerHTML = `<div class="ph">放大預覽（可放作品圖片）</div>`;
+  }
+}
+function closeModal(){
+  if(!modal) return;
+  modal.classList.remove("open");
+  modal.setAttribute("aria-hidden","true");
+  document.body.style.overflow="";
+}
+if(mClose) mClose.addEventListener("click", closeModal);
+if(modal){
+  modal.addEventListener("click",(e)=>{ if(e.target === modal) closeModal(); });
+}
+window.addEventListener("keydown",(e)=>{ if(e.key === "Escape") closeModal(); });
+
+document.querySelectorAll(".work").forEach(card=>{
+  card.addEventListener("click", ()=>{
+    const idx = Number(card.dataset.idx);
+    openModal(works[idx]);
+  });
+});
+
+/* Footer year */
+const yearEl = document.getElementById("year");
+if(yearEl) yearEl.textContent = new Date().getFullYear();
+
+/* =========================
+   ✅ 進站流程總控（Loading → 霧面顯現 → 標題彈跳 → 進入確認視窗）
+========================= */
+(function introFlow(){
+  const loader = document.getElementById("loader");
+  const fill = document.getElementById("loaderFill");
+  const heroTitle = document.getElementById("heroTitle");
+  const avatarPhoto = document.getElementById("avatarPhoto");
+  const aboutText = document.getElementById("aboutText");
+
+  // 假進度（視覺用）
+  let p = 0;
+  const timer = setInterval(()=>{
+    p = Math.min(100, p + Math.random()*12);
+    if(fill) fill.style.width = p + "%";
+    if(p >= 100) clearInterval(timer);
+  }, 140);
+
+  // 等圖片/資源差不多了再收
+  window.addEventListener("load", ()=>{
+    // 讓 loading 至少存在一下，不要閃一下就沒
+    const minShow = 900;
+    setTimeout(()=>{
+      if(loader) loader.classList.add("hide");
+
+      // 霧面→顯現
+      document.body.classList.add("is-ready");
+
+      // 標題彈跳
+      setTimeout(()=> heroTitle && heroTitle.classList.add("pop"), 260);
+
+      // 你要的：照片左→右、簡介右→左
+      setTimeout(()=> avatarPhoto && avatarPhoto.classList.add("in"), 520);
+      setTimeout(()=> aboutText && aboutText.classList.add("in"), 620);
+
+      // 再跳出確認視窗
+      setTimeout(()=> openPortal(), 1050);
+
+    }, minShow);
+  });
+})();
+
+/* =========================
+   ✅ 進入水晶洞 Portal（Yes→作品區，No→哭哭→Google）
+========================= */
+const portal = document.getElementById("portal");
+const portalYes = document.getElementById("portalYes");
+const portalNo = document.getElementById("portalNo");
+const portalCry = document.getElementById("portalCry");
+
+function openPortal(){
+  if(!portal) return;
+  portal.classList.add("open");
+  portal.setAttribute("aria-hidden","false");
+  document.body.style.overflow="hidden";
+}
+function closePortal(){
+  if(!portal) return;
+  portal.classList.remove("open");
+  portal.setAttribute("aria-hidden","true");
+  document.body.style.overflow="";
+}
+
+if(portalYes){
+  portalYes.addEventListener("click", ()=>{
+    closePortal();
+    // 進入作品區
+    setTimeout(()=>{
+      document.getElementById("works")?.scrollIntoView({behavior:"smooth"});
+    }, 120);
+  });
+}
+
+if(portalNo){
+  portalNo.addEventListener("click", ()=>{
+    if(portalCry) portalCry.classList.add("show");
+    // 哭一下再跳 Google
+    setTimeout(()=>{
+      window.location.href = "https://www.google.com";
+    }, 1200);
+  });
+}
+
+// 點背景不關（你要更沈浸），但 Esc 允許關掉
+window.addEventListener("keydown",(e)=>{
+  if(e.key === "Escape"){
+    closePortal();
+  }
+});
 </script>
+
 </body>
 </html>
-
-
