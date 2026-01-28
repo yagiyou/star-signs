@@ -212,6 +212,26 @@ function ensureAudio(){
   if(audioCtx.state === "suspended") audioCtx.resume();
 }
 
+  <!-- Camera Permission Ritual -->
+<div class="modal" id="cameraGate">
+  <div class="card">
+    <div class="card-h">
+      <div class="title">
+        <b>🜂 啟動星際感應</b>
+        <small>需要存取你的相機</small>
+      </div>
+    </div>
+    <div class="card-b">
+      <p style="margin:0 0 14px; line-height:1.7; color:rgba(255,255,255,.85)">
+        我們會使用相機來感應你的手勢（左右揮動、捏一下）。<br>
+        <b>不會儲存、不會上傳任何影像。</b>
+      </p>
+      <button class="btn" id="allowCameraBtn">允許存取相機</button>
+    </div>
+  </div>
+</div>
+
+
 /* 動態載入 mediapipe（Start 後才載入） */
 function loadScript(src){
   return new Promise((resolve, reject)=>{
@@ -234,7 +254,39 @@ startBtn.addEventListener("click", async ()=>{
     try{
       // 只有 Start 才載入（載入失敗不影響其他功能）
       await loadScript("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.js");
-      initHands(); // 嘗試啟用相機
+     const cameraGate = document.getElementById("cameraGate");
+const allowCameraBtn = document.getElementById("allowCameraBtn");
+
+function openCameraGate(){
+  cameraGate.classList.add("show");
+}
+
+function closeCameraGate(){
+  cameraGate.classList.remove("show");
+}
+
+// Start 只負責滑動 + 解鎖音效
+startBtn.addEventListener("click", ()=>{
+  ensureAudio();
+  skySection.scrollIntoView({ behavior:"smooth", block:"start" });
+
+  // 延遲一點點再顯示相機詢問（體感比較好）
+  setTimeout(openCameraGate, 600);
+});
+
+// 使用者「明確點擊」後才真的開相機
+allowCameraBtn.addEventListener("click", async ()=>{
+  closeCameraGate();
+  statusEl.textContent = "相機：請求中…";
+
+  try{
+    await initHands();   // 👈 現在這一行 Safari 會真的跳詢問
+  }catch(e){
+    statusEl.textContent = "相機：使用者拒絕或裝置不支援";
+    console.warn(e);
+  }
+});
+
     }catch(e){
       console.warn("mediapipe load failed", e);
       statusEl.textContent = "相機：載入失敗（可用滑鼠拖曳／點擊）";
@@ -762,3 +814,4 @@ function handleHands(res){
 
 </body>
 </html>
+
