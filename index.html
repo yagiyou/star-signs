@@ -163,7 +163,7 @@
       <h1>🪐 進入星際環境</h1>
       <p>
         點擊 Start 後，畫面將下潛進入互動星空。<br/>
-        （同時解鎖聲音；你也可以選擇按 Start 才開相機）
+        （同時解鎖聲音；按 Start 才會開相機）
       </p>
       <div class="startRow">
         <button class="btn" id="startBtn" type="button">Start</button>
@@ -229,7 +229,6 @@
       ensureAudio();
       skySection.scrollIntoView({ behavior: "smooth", block: "start" });
 
-      // Start 才開相機（更像儀式、也比較不嚇人）
       if(!handsStarted){
         handsStarted = true;
         initHands();
@@ -237,31 +236,98 @@
     });
 
     /* =========================
-       互動星空（你之前那套：星座發光+粒子+音效）
+       星座資料（12星座：點位+連線+音色）
     ========================= */
     const CONSTELLATIONS = [
-      { id:"orion", name:"獵戶座", x:.28, y:.42, r:28,
-        story:"追逐星光太久，忘了回頭。\n直到夜裡有人喊他名字，他才發現——\n守護，也是一種溫柔的獵。",
-        tone:{ base:140, shimmer:420, noise:0.06 }, glow:0, pulse:0
+      {
+        id:"aries", name:"白羊座", x:.47, y:.18, s:1.00, r:34,
+        story:"你衝出去的那一步，是命運最亮的火花。\n別怕太快，因為你天生就是起點。\n勇氣會替你把路照出來。",
+        tone:{ base:110, shimmer:360, noise:0.06 }, glow:0, pulse:0,
+        pts:[[0.12,0.62],[0.28,0.52],[0.44,0.44],[0.58,0.36],[0.72,0.26],[0.88,0.18]],
+        links:[[0,1],[1,2],[2,3],[3,4],[4,5]]
       },
-      { id:"scorpio", name:"天蠍座", x:.68, y:.58, r:28,
-        story:"把刺收進沉默裡，像把祕密藏好。\n不是不信任人，而是怕自己太在乎。\n真正的深情，總是先學會克制。",
-        tone:{ base:78, shimmer:260, noise:0.12 }, glow:0, pulse:0
+      {
+        id:"taurus", name:"金牛座", x:.23, y:.20, s:1.05, r:36,
+        story:"你慢慢走，但每一步都很重。\n世界催你快，你卻選擇穩。\n穩，才是最難得的強大。",
+        tone:{ base:84, shimmer:280, noise:0.10 }, glow:0, pulse:0,
+        pts:[[0.20,0.70],[0.34,0.52],[0.50,0.36],[0.66,0.48],[0.78,0.64],[0.56,0.72],[0.36,0.78]],
+        links:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,1]]
       },
-      { id:"leo", name:"獅子座", x:.57, y:.30, r:28,
-        story:"牠不是想贏，而是想被看見。\n當你點亮牠的那一刻，牠也照亮了你。\n勇敢，有時只是承認：我需要你。",
-        tone:{ base:180, shimmer:520, noise:0.05 }, glow:0, pulse:0
+      {
+        id:"gemini", name:"雙子座", x:.10, y:.26, s:1.10, r:38,
+        story:"你有兩種心跳，卻都是真的。\n一邊想逃，一邊想靠近。\n答案不在選邊，而在理解自己。",
+        tone:{ base:150, shimmer:520, noise:0.06 }, glow:0, pulse:0,
+        pts:[[0.20,0.18],[0.22,0.38],[0.24,0.58],[0.26,0.78],[0.58,0.20],[0.56,0.40],[0.54,0.60],[0.52,0.80],[0.36,0.22],[0.42,0.78]],
+        links:[[0,1],[1,2],[2,3],[4,5],[5,6],[6,7],[0,8],[4,8],[3,9],[7,9]]
       },
-      { id:"pisces", name:"雙魚座", x:.80, y:.36, r:28,
+      {
+        id:"cancer", name:"巨蟹座", x:.08, y:.62, s:1.05, r:36,
+        story:"你把柔軟當成盔甲，守住重要的人。\n不說不代表不痛，只是你選擇吞下去。\n其實你也值得被好好擁抱。",
+        tone:{ base:96, shimmer:320, noise:0.11 }, glow:0, pulse:0,
+        pts:[[0.18,0.62],[0.30,0.52],[0.44,0.44],[0.60,0.46],[0.74,0.56],[0.80,0.70],[0.66,0.78],[0.48,0.80],[0.30,0.76]],
+        links:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,0]]
+      },
+      {
+        id:"leo", name:"獅子座", x:.23, y:.76, s:1.10, r:38,
+        story:"你不是想贏，而是想被看見。\n當你點亮牠的那一刻，牠也照亮了你。\n勇敢，有時只是承認：我需要你。",
+        tone:{ base:180, shimmer:520, noise:0.05 }, glow:0, pulse:0,
+        pts:[[0.14,0.62],[0.28,0.52],[0.42,0.44],[0.56,0.38],[0.70,0.32],[0.84,0.40],[0.76,0.58],[0.58,0.70],[0.38,0.78]],
+        links:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,0]]
+      },
+      {
+        id:"virgo", name:"室女座", x:.40, y:.80, s:1.10, r:40,
+        story:"她把混亂一針一線縫成秩序。\n不是挑剔，是想把你放進更好的明天。\n她的溫柔，藏在每個小細節。",
+        tone:{ base:120, shimmer:360, noise:0.06 }, glow:0, pulse:0,
+        pts:[[0.16,0.26],[0.28,0.44],[0.40,0.60],[0.50,0.78],[0.62,0.62],[0.74,0.46],[0.86,0.30],[0.64,0.28],[0.46,0.38],[0.30,0.56]],
+        links:[[0,1],[1,2],[2,3],[2,4],[4,5],[5,6],[6,7],[7,8],[8,1],[9,2]]
+      },
+      {
+        id:"libra", name:"天秤座", x:.52, y:.84, s:1.00, r:36,
+        story:"你一直在找最不傷人的答案。\n可有時候，平衡不是兩邊都滿意。\n而是你願意先對自己誠實。",
+        tone:{ base:132, shimmer:420, noise:0.07 }, glow:0, pulse:0,
+        pts:[[0.18,0.62],[0.36,0.52],[0.52,0.46],[0.68,0.52],[0.86,0.62],[0.28,0.32],[0.76,0.32]],
+        links:[[0,1],[1,2],[2,3],[3,4],[1,5],[3,6]]
+      },
+      {
+        id:"scorpio", name:"天蠍座", x:.66, y:.80, s:1.10, r:40,
+        story:"牠把刺收進沉默裡，像把祕密藏好。\n不是不信任你，而是怕自己太在乎。\n真正的深情，總是先學會克制。",
+        tone:{ base:78, shimmer:260, noise:0.12 }, glow:0, pulse:0,
+        pts:[[0.14,0.28],[0.26,0.40],[0.38,0.52],[0.50,0.64],[0.62,0.58],[0.74,0.44],[0.86,0.32],[0.70,0.72],[0.92,0.54]],
+        links:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[3,7],[6,8]]
+      },
+      {
+        id:"sagittarius", name:"射手座", x:.90, y:.70, s:1.10, r:42,
+        story:"你把遠方當成呼吸，越走越清醒。\n自由不是離開，而是敢去追。\n你一拉弓，宇宙就替你讓路。",
+        tone:{ base:168, shimmer:560, noise:0.06 }, glow:0, pulse:0,
+        pts:[[0.18,0.20],[0.32,0.36],[0.48,0.50],[0.62,0.62],[0.78,0.74],[0.70,0.28],[0.52,0.28],[0.34,0.56],[0.86,0.48]],
+        links:[[0,1],[1,2],[2,3],[3,4],[2,5],[2,6],[2,7],[3,8]]
+      },
+      {
+        id:"capricorn", name:"摩羯座", x:.90, y:.26, s:1.05, r:40,
+        story:"你把時間當成工具，把夢慢慢做成現實。\n別人只看見你冷，其實你只是專注。\n你不是不浪漫，你是在建一座城。",
+        tone:{ base:72, shimmer:220, noise:0.10 }, glow:0, pulse:0,
+        pts:[[0.18,0.66],[0.32,0.52],[0.48,0.40],[0.64,0.34],[0.80,0.40],[0.74,0.58],[0.56,0.70],[0.38,0.76]],
+        links:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,1]]
+      },
+      {
+        id:"aquarius", name:"寶瓶座", x:.70, y:.20, s:1.15, r:42,
+        story:"你像一段訊號，總在別人之前收到未來。\n不是怪，是你不想活在舊劇本。\n你只是誠實地，當你自己。",
+        tone:{ base:160, shimmer:480, noise:0.08 }, glow:0, pulse:0,
+        pts:[[0.18,0.30],[0.34,0.38],[0.50,0.46],[0.66,0.54],[0.82,0.62],[0.24,0.62],[0.40,0.70],[0.56,0.78],[0.72,0.86]],
+        links:[[0,1],[1,2],[2,3],[3,4],[5,6],[6,7],[7,8],[2,6]]
+      },
+      {
+        id:"pisces", name:"雙魚座", x:.58, y:.18, s:1.10, r:40,
         story:"兩條魚游向相反的夢，卻共享同一片海。\n所以離開不等於背叛，只是各自成長。\n愛，是允許彼此不同方向。",
-        tone:{ base:92, shimmer:320, noise:0.10 }, glow:0, pulse:0
-      },
-      { id:"virgo", name:"處女座", x:.44, y:.66, r:28,
-        story:"把混亂一針一線縫成秩序。\n不是挑剔，是想把你放進更好的明天。\n處女座的溫柔，藏在每個小細節。",
-        tone:{ base:120, shimmer:360, noise:0.06 }, glow:0, pulse:0
+        tone:{ base:92, shimmer:320, noise:0.10 }, glow:0, pulse:0,
+        pts:[[0.18,0.26],[0.32,0.40],[0.46,0.54],[0.60,0.68],[0.74,0.54],[0.86,0.40],[0.30,0.76],[0.74,0.26]],
+        links:[[0,1],[1,2],[2,3],[3,4],[4,5],[2,6],[4,7]]
       },
     ];
 
+    /* =========================
+       Canvas / 狀態
+    ========================= */
     const canvas = document.getElementById("sky");
     const ctx = canvas.getContext("2d", { alpha:true });
 
@@ -280,6 +346,39 @@
     function rand(min,max){ return Math.random()*(max-min)+min; }
     function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
 
+    /* =========================
+       黃道環排版：12星座自動成一圈
+    ========================= */
+    const ZODIAC_ORDER = [
+      "aries","taurus","gemini","cancer","leo","virgo",
+      "libra","scorpio","sagittarius","capricorn","aquarius","pisces"
+    ];
+    const ORBIT = { cx:0.5, cy:0.52, rx:0.40, ry:0.24, tilt:-0.18, rotate:0.0 };
+
+    function layoutZodiacRing(){
+      const baseRot = ORBIT.rotate + shiftX * 0.55;
+
+      for(let i=0;i<ZODIAC_ORDER.length;i++){
+        const id = ZODIAC_ORDER[i];
+        const c = CONSTELLATIONS.find(z=>z.id===id);
+        if(!c) continue;
+
+        const t = baseRot + (i/ZODIAC_ORDER.length) * Math.PI*2;
+
+        let x = ORBIT.cx + Math.cos(t) * ORBIT.rx;
+        let y = ORBIT.cy + Math.sin(t) * ORBIT.ry;
+
+        x += (y - ORBIT.cy) * ORBIT.tilt;
+
+        c.x = x; c.y = y;
+
+        const depth = (Math.sin(t) + 1) * 0.5; // 0遠 1近
+        c.s = 0.90 + depth * 0.35;
+        c.r = 28 + depth * 16;
+        c._depth = depth;
+      }
+    }
+
     function resize(){
       W = Math.floor(window.innerWidth);
       H = Math.floor(window.innerHeight);
@@ -288,25 +387,33 @@
       ctx.setTransform(DPR,0,0,DPR,0,0);
 
       const count = Math.floor((W*H)/7000);
-      stars = new Array(count).fill(0).map(()=>({
-        x:Math.random()*W,
-        y:Math.random()*H,
+      stars = new Array(count).fill(0).map(()=>( {
+        x:Math.random()*W, y:Math.random()*H,
         z:Math.random(),
         r:rand(.7,1.9),
         a:rand(.25,.95),
         tw:rand(0,Math.PI*2),
         sp:rand(.003,.012)
-      }));
+      } ));
     }
     window.addEventListener("resize", resize);
     resize();
 
+    /* =========================
+       粒子爆開
+    ========================= */
     function spawnBurst(x,y,strength=1){
       const n = Math.floor(52*strength);
       for(let i=0;i<n;i++){
         const a = Math.random()*Math.PI*2;
         const sp = (1.2 + Math.random()*3.8) * (0.9 + strength*0.5);
-        particles.push({ x,y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, life:1, size:0.7+Math.random()*1.8, tw:Math.random()*Math.PI*2 });
+        particles.push({
+          x,y,
+          vx:Math.cos(a)*sp, vy:Math.sin(a)*sp,
+          life:1,
+          size:0.7+Math.random()*1.8,
+          tw:Math.random()*Math.PI*2
+        });
       }
     }
     function stepParticles(){
@@ -335,195 +442,237 @@
       ctx.restore();
     }
 
+    /* =========================
+       繪製星座（像你圖那樣：多星點+連線+發光描邊）
+    ========================= */
     function drawConstellations(){
       for(const c of CONSTELLATIONS){
-        c.glow = Math.max(0, c.glow - 0.035);
+        c.glow  = Math.max(0, c.glow  - 0.035);
         c.pulse = Math.max(0, c.pulse - 0.060);
 
-        const cx = c.x*W + shiftX*120;
-        const cy = c.y*H;
+        const cx = c.x * W + shiftX * 120;
+        const cy = c.y * H;
 
-        const gg = ctx.createRadialGradient(cx,cy,0,cx,cy,54+c.glow*30);
-        gg.addColorStop(0, `rgba(255,255,255,${0.14 + c.glow*0.26})`);
-        gg.addColorStop(.35, `rgba(255,255,255,${0.05 + c.glow*0.12})`);
+        const scale = (Math.min(W,H) * 0.12) * (c.s ?? 1);
+        const d = (c._depth ?? 0.5);
+
+        const pts = c.pts.map(p => ({
+          x: cx + (p[0]-0.5) * scale,
+          y: cy + (p[1]-0.5) * scale
+        }));
+
+        // 底光暈
+        const gg = ctx.createRadialGradient(cx, cy, 0, cx, cy, 70 + c.glow*40);
+        gg.addColorStop(0, `rgba(255,255,255,${0.08 + c.glow*0.22})`);
+        gg.addColorStop(.35, `rgba(255,255,255,${0.03 + c.glow*0.10})`);
         gg.addColorStop(1, "rgba(255,255,255,0)");
-        ctx.fillStyle=gg;
-        ctx.beginPath(); ctx.arc(cx,cy,54+c.glow*18,0,Math.PI*2); ctx.fill();
-
-        const pts=[{x:cx-26,y:cy-10},{x:cx-6,y:cy+2},{x:cx+16,y:cy-8}];
-
-        ctx.lineWidth=1;
-        ctx.strokeStyle="rgba(255,255,255,.18)";
+        ctx.fillStyle = gg;
         ctx.beginPath();
-        ctx.moveTo(pts[0].x,pts[0].y);
-        for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x,pts[i].y);
+        ctx.arc(cx, cy, 70 + c.glow*26, 0, Math.PI*2);
+        ctx.fill();
+
+        // 普通線（遠的淡、近的亮）
+        const baseA = 0.10 + d * 0.18;
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = `rgba(255,255,255,${baseA})`;
+        ctx.beginPath();
+        for(const [a,b] of c.links){
+          ctx.moveTo(pts[a].x, pts[a].y);
+          ctx.lineTo(pts[b].x, pts[b].y);
+        }
         ctx.stroke();
 
-        if(c.glow>0){
+        // 發光描邊（點到更亮）
+        if(c.glow > 0){
           ctx.save();
-          ctx.globalCompositeOperation="lighter";
-          ctx.shadowColor="rgba(255,255,255,.85)";
-          ctx.shadowBlur=18 + c.glow*26;
-          for(const w of [2.5,4.5,7.5]){
-            ctx.lineWidth=w;
-            ctx.strokeStyle=`rgba(255,255,255,${0.05 + c.glow*0.18})`;
+          ctx.globalCompositeOperation = "lighter";
+          ctx.shadowColor = "rgba(255,255,255,.85)";
+          ctx.shadowBlur  = 18 + c.glow*28;
+
+          for(const w of [2.5, 4.5, 7.5]){
+            ctx.lineWidth = w;
+            ctx.strokeStyle = `rgba(255,255,255,${0.05 + c.glow*0.18})`;
             ctx.beginPath();
-            ctx.moveTo(pts[0].x,pts[0].y);
-            for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x,pts[i].y);
+            for(const [a,b] of c.links){
+              ctx.moveTo(pts[a].x, pts[a].y);
+              ctx.lineTo(pts[b].x, pts[b].y);
+            }
             ctx.stroke();
           }
           ctx.restore();
         }
 
-        const dotR = 3.2 + c.pulse*3.0;
-        ctx.fillStyle="rgba(255,255,255,.9)";
-        ctx.beginPath(); ctx.arc(cx,cy,dotR,0,Math.PI*2); ctx.fill();
+        // 星點（每顆點）
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        for(const p of pts){
+          const rr = 1.8 + c.pulse*1.8;
+          ctx.fillStyle = "rgba(255,255,255,.92)";
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, rr, 0, Math.PI*2);
+          ctx.fill();
+        }
+        ctx.restore();
 
-        ctx.fillStyle="rgba(255,255,255,.62)";
-        ctx.font="12px ui-sans-serif, system-ui, -apple-system, Noto Sans TC";
-        ctx.fillText(c.name, cx+10, cy-12);
+        // 名稱（靠近外側）
+        ctx.fillStyle = `rgba(255,255,255,${0.30 + d*0.55})`;
+        ctx.font = "14px ui-sans-serif, system-ui, -apple-system, Noto Sans TC";
+        ctx.fillText(c.name, cx - scale*0.55, cy - scale*0.62);
       }
     }
 
-    function draw(){
-      ctx.clearRect(0,0,W,H);
-
-      const g = ctx.createRadialGradient(W*.55,H*.35,0,W*.55,H*.35,Math.max(W,H)*.9);
-      g.addColorStop(0,"rgba(80,90,220,.12)");
-      g.addColorStop(.45,"rgba(120,80,220,.06)");
-      g.addColorStop(1,"rgba(0,0,0,0)");
-      ctx.fillStyle=g;
-      ctx.fillRect(0,0,W,H);
-
-      shiftX += (targetShiftX - shiftX) * 0.08;
-
-      for(const s of stars){
-        s.tw += s.sp;
-        const twinkle=(Math.sin(s.tw)+1)*0.5;
-        const px=s.x + shiftX*(40 + s.z*140);
-        const alpha=s.a*(0.55 + twinkle*0.45);
-        ctx.fillStyle=`rgba(255,255,255,${alpha})`;
-        ctx.beginPath();
-        ctx.arc(px, s.y, s.r*(0.75 + s.z*0.7), 0, Math.PI*2);
-        ctx.fill();
-      }
-
-      drawConstellations();
-      stepParticles();
-      drawParticles();
-
-      requestAnimationFrame(draw);
-    }
-    draw();
-
-    function openStory(c){
-      mName.textContent=c.name;
-      mStory.textContent=c.story;
-      modal.classList.add("show");
-    }
-    function closeStory(){ modal.classList.remove("show"); }
-    closeBtn.addEventListener("click", closeStory);
-    modal.addEventListener("click",(e)=>{ if(e.target===modal) closeStory(); });
-
+    /* =========================
+       點擊命中：點到任一顆星點就算
+    ========================= */
     function hitTest(x,y){
       for(const c of CONSTELLATIONS){
-        const cx=c.x*W + shiftX*120;
-        const cy=c.y*H;
-        const r=(c.r||26);
-        const dx=x-cx, dy=y-cy;
-        if(dx*dx + dy*dy <= r*r) return c;
+        const cx = c.x * W + shiftX * 120;
+        const cy = c.y * H;
+        const scale = (Math.min(W,H) * 0.12) * (c.s ?? 1);
+
+        for(const p of c.pts){
+          const px = cx + (p[0]-0.5) * scale;
+          const py = cy + (p[1]-0.5) * scale;
+
+          const r  = (c.r ?? 34);
+          const dx = x - px, dy = y - py;
+          if(dx*dx + dy*dy <= r*r) return c;
+        }
       }
       return null;
     }
 
+    /* =========================
+       Modal
+    ========================= */
+    function openStory(c){
+      mName.textContent = c.name;
+      mStory.textContent = c.story;
+      modal.classList.add("show");
+    }
+    function closeStory(){ modal.classList.remove("show"); }
+    closeBtn.addEventListener("click", closeStory);
+    modal.addEventListener("click", (e)=>{ if(e.target===modal) closeStory(); });
+
+    /* =========================
+       WebAudio：星塵音（每星座不同 tone）
+    ========================= */
     function playStardust(tone){
       ensureAudio();
-      const t0=audioCtx.currentTime;
+      const t0 = audioCtx.currentTime;
 
-      const out=audioCtx.createGain();
-      out.gain.value=0.0001;
+      const out = audioCtx.createGain();
+      out.gain.value = 0.0001;
       out.connect(audioCtx.destination);
 
-      const osc=audioCtx.createOscillator();
-      osc.type="sine";
+      const osc = audioCtx.createOscillator();
+      osc.type = "sine";
       osc.frequency.setValueAtTime(tone.base, t0);
 
-      const osc2=audioCtx.createOscillator();
-      osc2.type="triangle";
+      const osc2 = audioCtx.createOscillator();
+      osc2.type = "triangle";
       osc2.frequency.setValueAtTime(tone.shimmer, t0);
 
-      const noise=audioCtx.createBufferSource();
-      const buffer=audioCtx.createBuffer(1, audioCtx.sampleRate*0.28, audioCtx.sampleRate);
-      const data=buffer.getChannelData(0);
+      const noise = audioCtx.createBufferSource();
+      const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.28, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
       for(let i=0;i<data.length;i++){
-        data[i]=(Math.random()*2-1)*Math.pow(1 - i/data.length, 2.4);
+        data[i] = (Math.random()*2-1) * Math.pow(1 - i/data.length, 2.4);
       }
-      noise.buffer=buffer;
+      noise.buffer = buffer;
 
-      const hp=audioCtx.createBiquadFilter();
-      hp.type="highpass"; hp.frequency.value=1300;
+      const hp = audioCtx.createBiquadFilter();
+      hp.type = "highpass";
+      hp.frequency.value = 1300;
 
-      const bp=audioCtx.createBiquadFilter();
-      bp.type="bandpass"; bp.frequency.value=520; bp.Q.value=0.6;
+      const bp = audioCtx.createBiquadFilter();
+      bp.type = "bandpass";
+      bp.frequency.value = 520;
+      bp.Q.value = 0.6;
 
-      const g1=audioCtx.createGain(); g1.gain.value=0.16;
-      const g2=audioCtx.createGain(); g2.gain.value=0.08;
-      const gn=audioCtx.createGain(); gn.gain.value=(tone.noise ?? 0.08);
+      const g1 = audioCtx.createGain(); g1.gain.value = 0.16;
+      const g2 = audioCtx.createGain(); g2.gain.value = 0.08;
+      const gn = audioCtx.createGain(); gn.gain.value = (tone.noise ?? 0.08);
 
-      osc.connect(g1); osc2.connect(g2);
+      osc.connect(g1);
+      osc2.connect(g2);
       noise.connect(hp); hp.connect(gn);
 
       g1.connect(bp); g2.connect(bp); gn.connect(bp);
       bp.connect(out);
 
       out.gain.setValueAtTime(0.0001, t0);
-      out.gain.exponentialRampToValueAtTime(0.20, t0+0.02);
-      out.gain.exponentialRampToValueAtTime(0.0001, t0+0.34);
+      out.gain.exponentialRampToValueAtTime(0.20, t0 + 0.02);
+      out.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.34);
 
       osc2.frequency.setValueAtTime(tone.shimmer, t0);
-      osc2.frequency.exponentialRampToValueAtTime(tone.shimmer*1.22, t0+0.16);
+      osc2.frequency.exponentialRampToValueAtTime(tone.shimmer * 1.22, t0 + 0.16);
 
       osc.start(t0); osc2.start(t0); noise.start(t0);
-      osc.stop(t0+0.38); osc2.stop(t0+0.38); noise.stop(t0+0.38);
+      osc.stop(t0 + 0.38); osc2.stop(t0 + 0.38); noise.stop(t0 + 0.38);
     }
 
+    /* =========================
+       點到星座：發光＋粒子＋音效＋故事
+    ========================= */
     function activateConstellation(c, px, py){
-      c.glow=1; c.pulse=1;
-      spawnBurst(px,py,1);
+      c.glow = 1;
+      c.pulse = 1;
+      spawnBurst(px, py, 1);
       if(c.tone) playStardust(c.tone);
       openStory(c);
     }
 
-    window.addEventListener("pointerdown",(e)=>{
-      if(modal.classList.contains("show")) return;
-      const c=hitTest(e.clientX, e.clientY);
-      if(c) activateConstellation(c, e.clientX, e.clientY);
-    });
-
+    /* =========================
+       滑鼠/觸控：點擊 & 拖曳（保底）
+    ========================= */
     let dragging=false, lastX=0;
-    window.addEventListener("pointerdown",(e)=>{ dragging=true; lastX=e.clientX; });
-    window.addEventListener("pointerup",()=> dragging=false);
-    window.addEventListener("pointercancel",()=> dragging=false);
-    window.addEventListener("pointermove",(e)=>{
-      if(!dragging) return;
-      const dx=e.clientX - lastX;
-      lastX=e.clientX;
-      targetShiftX = clamp(targetShiftX + dx/W*1.4, -1, 1);
+
+    window.addEventListener("pointerdown", (e)=>{
+      if(modal.classList.contains("show")) return;
+
+      // 點星座（先判斷點擊命中）
+      const c = hitTest(e.clientX, e.clientY);
+      if(c){
+        activateConstellation(c, e.clientX, e.clientY);
+        return;
+      }
+
+      // 沒點到星座才開始拖曳（避免點星星被當拖曳）
+      dragging = true;
+      lastX = e.clientX;
     });
 
-    /* ===== 手勢（按 Start 才會 initHands）===== */
-    const statusEl=document.getElementById("status");
-    const video=document.getElementById("video");
-    let handLandmarker=null, lastVideoTime=-1, camOk=false;
-    let pinchDown=false, pinchCooldown=0;
+    window.addEventListener("pointerup", ()=> dragging=false);
+    window.addEventListener("pointercancel", ()=> dragging=false);
+
+    window.addEventListener("pointermove", (e)=>{
+      if(!dragging) return;
+      const dx = e.clientX - lastX;
+      lastX = e.clientX;
+      targetShiftX = clamp(targetShiftX + dx / W * 1.4, -1, 1);
+    });
+
+    /* =========================
+       MediaPipe 手勢：左右揮＝視差，捏一下＝點擊
+    ========================= */
+    const statusEl = document.getElementById("status");
+    const video = document.getElementById("video");
+
+    let handLandmarker = null;
+    let lastVideoTime = -1;
+    let camOk = false;
+
+    let pinchDown = false;
+    let pinchCooldown = 0;
 
     async function initHands(){
       try{
-        const stream=await navigator.mediaDevices.getUserMedia({
-          video:{ facingMode:"user", width:{ideal:1280}, height:{ideal:720} },
-          audio:false
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false
         });
-        video.srcObject=stream;
+        video.srcObject = stream;
         await video.play();
 
         const vision = await FilesetResolver.forVisionTasks(
@@ -531,29 +680,31 @@
         );
 
         handLandmarker = await HandLandmarker.createFromOptions(vision, {
-          baseOptions:{
-            modelAssetPath:"https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task"
+          baseOptions: {
+            modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task"
           },
-          runningMode:"VIDEO",
-          numHands:1,
-          minHandDetectionConfidence:0.6,
-          minTrackingConfidence:0.6
+          runningMode: "VIDEO",
+          numHands: 1,
+          minHandDetectionConfidence: 0.6,
+          minTrackingConfidence: 0.6
         });
 
-        camOk=true;
-        statusEl.textContent="相機：已啟用（左右揮動／捏一下點星座）";
+        camOk = true;
+        statusEl.textContent = "相機：已啟用（左右揮動／捏一下點星座）";
         requestAnimationFrame(loop);
       }catch(err){
         console.warn(err);
-        camOk=false;
-        statusEl.textContent="相機：啟用失敗（可改用滑鼠拖曳／點擊）";
+        camOk = false;
+        statusEl.textContent = "相機：啟用失敗（可改用滑鼠拖曳／點擊）";
       }
     }
 
     function loop(){
       if(!handLandmarker || !camOk) return;
+
       if(video.currentTime !== lastVideoTime){
-        const res = handLandmarker.detectForVideo(video, performance.now());
+        const nowMs = performance.now();
+        const res = handLandmarker.detectForVideo(video, nowMs);
         handleHands(res);
         lastVideoTime = video.currentTime;
       }
@@ -561,32 +712,78 @@
     }
 
     function handleHands(res){
-      if(!res?.landmarks?.length) return;
-      const lm=res.landmarks[0];
+      if(!res || !res.landmarks || !res.landmarks.length) return;
+      const lm = res.landmarks[0];
 
-      const cx=(lm[0].x + lm[9].x)*0.5;
-      const mirroredX=1 - cx;
-      targetShiftX = clamp((mirroredX - 0.5)*2, -1, 1);
+      const cx = (lm[0].x + lm[9].x) * 0.5;
+      const mirroredX = 1 - cx;
+      targetShiftX = clamp((mirroredX - 0.5) * 2, -1, 1);
 
-      const thumb=lm[4], index=lm[8];
-      const dx=thumb.x - index.x, dy=thumb.y - index.y;
-      const dist=Math.sqrt(dx*dx + dy*dy);
+      const thumb = lm[4], index = lm[8];
+      const dx = (thumb.x - index.x);
+      const dy = (thumb.y - index.y);
+      const dist = Math.sqrt(dx*dx + dy*dy);
       const isPinching = dist < 0.045;
 
-      if(pinchCooldown>0) pinchCooldown--;
+      if(pinchCooldown > 0) pinchCooldown--;
 
-      if(isPinching && !pinchDown && pinchCooldown===0 && !modal.classList.contains("show")){
-        pinchDown=true;
-        pinchCooldown=16;
+      if(isPinching && !pinchDown && pinchCooldown === 0 && !modal.classList.contains("show")){
+        pinchDown = true;
+        pinchCooldown = 16;
 
-        const px=(1 - index.x)*W;
-        const py=index.y*H;
-        const c=hitTest(px,py);
+        const px = (1 - index.x) * W;
+        const py = index.y * H;
+
+        const c = hitTest(px, py);
         if(c) activateConstellation(c, px, py);
       }
 
-      if(!isPinching) pinchDown=false;
+      if(!isPinching) pinchDown = false;
     }
+
+    /* =========================
+       主繪製迴圈
+    ========================= */
+    function draw(){
+      ctx.clearRect(0,0,W,H);
+
+      // 背景微光
+      const g = ctx.createRadialGradient(W*.55, H*.35, 0, W*.55, H*.35, Math.max(W,H)*.9);
+      g.addColorStop(0, "rgba(80,90,220,.12)");
+      g.addColorStop(.45, "rgba(120,80,220,.06)");
+      g.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = g;
+      ctx.fillRect(0,0,W,H);
+
+      // 視差平滑
+      shiftX += (targetShiftX - shiftX) * 0.08;
+
+      // ★ 12星座排成黃道環（每幀更新）
+      layoutZodiacRing();
+
+      // 星點（深度視差）
+      for(const s of stars){
+        s.tw += s.sp;
+        const twinkle = (Math.sin(s.tw)+1)*0.5;
+        const px = s.x + shiftX * (40 + s.z*140);
+        const py = s.y;
+        const alpha = s.a * (0.55 + twinkle*0.45);
+        ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+        ctx.beginPath();
+        ctx.arc(px, py, s.r*(0.75 + s.z*0.7), 0, Math.PI*2);
+        ctx.fill();
+      }
+
+      // 星座
+      drawConstellations();
+
+      // 粒子
+      stepParticles();
+      drawParticles();
+
+      requestAnimationFrame(draw);
+    }
+    draw();
   </script>
 
 </body>
