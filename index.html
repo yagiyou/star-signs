@@ -2,8 +2,8 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Interactive Constellations • Hand-Tracked</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Interactive Constellations • Hand Tracked</title>
 
   <style>
     :root{
@@ -12,20 +12,28 @@
       --muted:rgba(255,255,255,.68);
       --line:rgba(255,255,255,.14);
       --glass:rgba(10,12,22,.62);
-      --accent:#b76e79;
-      --accent2:#d6b36a;
+      --gold:#d6b36a;
+      --shadow: 0 18px 60px rgba(0,0,0,.45);
+      --r:18px;
     }
     *{box-sizing:border-box}
-    html,body{height:100%; margin:0; background:var(--bg); color:var(--ink); font-family:ui-sans-serif,system-ui,-apple-system,"Noto Sans TC","PingFang TC",sans-serif;}
-    .app{height:100%; display:grid; grid-template-rows:auto 1fr;}
+    html,body{height:100%; margin:0; background:var(--bg); color:var(--ink);
+      font-family:ui-sans-serif,system-ui,-apple-system,"Noto Sans TC","PingFang TC",sans-serif;
+      overflow:hidden;
+    }
+
+    .app{height:100%; width:100%; display:grid; grid-template-rows:auto 1fr;}
     header{
+      position:relative;
+      z-index:20;
       display:flex; align-items:center; justify-content:space-between;
-      padding:14px 16px; border-bottom:1px solid var(--line);
+      padding:14px 16px;
+      border-bottom:1px solid var(--line);
       background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,0));
     }
-    header .title{display:flex; gap:10px; align-items:baseline;}
-    header h1{font-size:14px; margin:0; letter-spacing:.3px; font-weight:700;}
-    header .hint{font-size:12px; color:var(--muted)}
+    header .title{display:flex; gap:10px; align-items:baseline; min-width:0;}
+    header h1{font-size:14px; margin:0; letter-spacing:.3px; font-weight:800; white-space:nowrap;}
+    header .hint{font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:48vw;}
     header .right{display:flex; gap:10px; align-items:center;}
     button{
       appearance:none; border:1px solid var(--line);
@@ -35,98 +43,99 @@
     }
     button:hover{background:rgba(255,255,255,.09)}
     button:active{transform:translateY(1px)}
-    .stage{
-      position:relative; overflow:hidden;
-      display:grid; place-items:center;
-    }
 
-    /* 星空 canvas */
-    canvas#sky{
-      width:100%; height:100%;
-      display:block;
-    }
+    .stage{position:relative; overflow:hidden;}
+    canvas#sky{width:100%; height:100%; display:block;}
 
-    /* 攝像頭（預設隱藏，可切換） */
+    /* 攝像頭小窗（可切） */
     video#cam{
       position:absolute; right:12px; bottom:12px;
       width:220px; height:140px;
       border-radius:16px;
       border:1px solid rgba(255,255,255,.18);
-      box-shadow: 0 18px 60px rgba(0,0,0,.45);
+      box-shadow:var(--shadow);
       object-fit:cover;
       opacity:0; pointer-events:none;
       transform:translateY(10px);
       transition:.25s ease;
       background:#000;
+      z-index:15;
     }
-    .show-cam video#cam{
-      opacity:1; transform:translateY(0);
-    }
+    .show-cam video#cam{opacity:1; transform:translateY(0); pointer-events:auto;}
 
-    /* 狀態條 */
-    .status{
-      position:absolute; left:12px; bottom:12px;
-      background:var(--glass);
-      border:1px solid rgba(255,255,255,.14);
-      border-radius:16px;
-      padding:10px 12px;
-      width:min(420px, calc(100% - 24px));
-      box-shadow: 0 18px 60px rgba(0,0,0,.45);
-      backdrop-filter: blur(10px);
+    /* 霧化層：點到星座時開啟 */
+    #blur-layer{
+      position:absolute; inset:0;
+      backdrop-filter: blur(14px);
+      background: rgba(5,6,13,.45);
+      opacity:0;
+      pointer-events:none;
+      transition: opacity .35s ease;
+      z-index:8;
     }
-    .status .row{display:flex; gap:10px; align-items:center; justify-content:space-between;}
-    .badge{
-      font-size:12px; color:var(--muted);
-      display:flex; gap:8px; align-items:center;
-    }
-    .dot{
-      width:8px; height:8px; border-radius:99px; background:rgba(255,255,255,.35);
-      box-shadow:0 0 0 3px rgba(255,255,255,.08);
-    }
-    .dot.on{background:#63ff9a; box-shadow:0 0 0 3px rgba(99,255,154,.16)}
-    .dot.warn{background:#ffd36a; box-shadow:0 0 0 3px rgba(255,211,106,.16)}
-    .meta{
-      margin-top:8px;
-      font-size:12px; color:var(--muted);
-      display:flex; gap:12px; flex-wrap:wrap;
-    }
-    .meta span b{color:var(--ink); font-weight:700}
+    #blur-layer.on{opacity:1;}
 
-    /* 故事卡 */
+    /* 中央故事卡（固定在 viewport，不跑位） */
     .story{
-      position:absolute; top:14px; left:50%;
-      transform:translateX(-50%);
-      width:min(720px, calc(100% - 24px));
-      background:linear-gradient(180deg, rgba(12,14,26,.78), rgba(12,14,26,.55));
+      position:fixed;
+      left:50%;
+      top:50%;
+      transform:translate(-50%,-50%) scale(.96);
+      z-index:30;
+
+      width:min(92vw, 520px);
+      max-height:min(70vh, 560px);
+      overflow:auto;
+
+      background:linear-gradient(180deg, rgba(12,14,26,.86), rgba(12,14,26,.62));
       border:1px solid rgba(255,255,255,.14);
       border-radius:18px;
       padding:12px 14px;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 18px 60px rgba(0,0,0,.45);
-      opacity:0; pointer-events:none;
-      transition:.22s ease;
+      backdrop-filter: blur(12px);
+      box-shadow:var(--shadow);
+
+      opacity:0;
+      pointer-events:none;
+      transition:.35s ease;
     }
-    .story.on{opacity:1; pointer-events:auto;}
+    .story.on{
+      opacity:1;
+      transform:translate(-50%,-50%) scale(1);
+      pointer-events:auto;
+    }
     .story .top{
       display:flex; align-items:center; justify-content:space-between; gap:12px;
-      margin-bottom:6px;
+      margin-bottom:8px;
     }
     .story .name{
       display:flex; gap:10px; align-items:center;
-      font-weight:800; letter-spacing:.4px;
+      font-weight:900; letter-spacing:.4px;
     }
     .pill{
       font-size:11px; color:rgba(255,255,255,.78);
       padding:4px 8px; border-radius:999px;
       border:1px solid rgba(255,255,255,.14);
       background:rgba(255,255,255,.06);
+      white-space:nowrap;
     }
-    .story p{margin:0; color:rgba(255,255,255,.86); font-size:13px; line-height:1.65}
-    .kbd{
-      font-size:11px; color:rgba(255,255,255,.7);
+    .story p{
+      margin:0;
+      color:rgba(255,255,255,.88);
+      font-size:13px;
+      line-height:1.75;
+      white-space:pre-line;
+    }
+    .story .actions{
+      display:flex; justify-content:flex-end; margin-top:10px;
+    }
+    .story .closeBtn{
       border:1px solid rgba(255,255,255,.14);
-      padding:3px 8px; border-radius:8px;
       background:rgba(255,255,255,.06);
+      color:rgba(255,255,255,.9);
+      padding:8px 10px;
+      border-radius:12px;
+      cursor:pointer;
+      font-size:12px;
     }
 
     /* 準星 */
@@ -138,14 +147,51 @@
       pointer-events:none;
       opacity:0;
       transition: opacity .12s ease;
+      z-index:12;
     }
     .cursor.on{opacity:1;}
     .cursor.pinch{
-      border-color:rgba(214,179,106,.9);
+      border-color:rgba(214,179,106,.95);
       box-shadow:0 0 0 7px rgba(214,179,106,.18);
     }
 
-    /* 小提示 */
+    /* 底部狀態（避免擋到畫面：窄一些、可收起） */
+    .status{
+      position:absolute; left:12px; bottom:12px;
+      background:var(--glass);
+      border:1px solid rgba(255,255,255,.14);
+      border-radius:16px;
+      padding:10px 12px;
+      width:min(520px, calc(100% - 24px));
+      box-shadow:var(--shadow);
+      backdrop-filter: blur(10px);
+      z-index:14;
+    }
+    .status .row{display:flex; gap:10px; align-items:center; justify-content:space-between;}
+    .badge{
+      font-size:12px; color:var(--muted);
+      display:flex; gap:8px; align-items:center;
+      min-width:0;
+    }
+    .badge span.txt{
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+      max-width:56vw;
+    }
+    .dot{
+      width:8px; height:8px; border-radius:99px; background:rgba(255,255,255,.35);
+      box-shadow:0 0 0 3px rgba(255,255,255,.08);
+      flex:0 0 auto;
+    }
+    .dot.on{background:#63ff9a; box-shadow:0 0 0 3px rgba(99,255,154,.16)}
+    .dot.warn{background:#ffd36a; box-shadow:0 0 0 3px rgba(255,211,106,.16)}
+    .meta{
+      margin-top:8px;
+      font-size:12px; color:var(--muted);
+      display:flex; gap:12px; flex-wrap:wrap;
+    }
+    .meta span b{color:var(--ink); font-weight:800}
+
+    /* 小提示（手機時自動淡出） */
     .tip{
       position:absolute; top:64px; left:12px;
       padding:10px 12px;
@@ -154,10 +200,20 @@
       background:rgba(255,255,255,.05);
       color:rgba(255,255,255,.78);
       font-size:12px;
-      max-width:min(420px, calc(100% - 24px));
+      max-width:min(520px, calc(100% - 24px));
       line-height:1.6;
+      z-index:13;
+      opacity:.95;
+      transition: opacity .35s ease;
     }
+    .tip.hide{opacity:0; pointer-events:none;}
     .tip b{color:var(--ink)}
+
+    /* 小螢幕調整 */
+    @media (max-width: 420px){
+      header .hint{display:none;}
+      video#cam{width:180px; height:120px;}
+    }
   </style>
 
   <!-- MediaPipe Hands -->
@@ -170,7 +226,7 @@
   <header>
     <div class="title">
       <h1>星空手勢互動 • Constellations</h1>
-      <div class="hint">揮手平移星空｜捏合(食指+拇指)點星座</div>
+      <div class="hint">左右揮手平移｜捏合(食指+拇指)點星座</div>
     </div>
     <div class="right">
       <button id="toggleCamBtn">顯示攝像頭</button>
@@ -178,34 +234,44 @@
     </div>
   </header>
 
-  <main class="stage">
+  <main class="stage" id="stage">
     <canvas id="sky"></canvas>
+    <div id="blur-layer"></div>
     <video id="cam" playsinline muted></video>
 
-    <div class="story" id="story">
+    <div class="story" id="story" aria-hidden="true">
       <div class="top">
-        <div class="name"><span id="storyName">—</span> <span class="pill" id="storyTag">Constellation</span></div>
-        <span class="kbd">Esc 關閉</span>
+        <div class="name">
+          <span id="storyName">—</span>
+          <span class="pill" id="storyTag">Constellation</span>
+        </div>
+        <span class="pill">捏合 / Esc 關閉</span>
       </div>
       <p id="storyText">—</p>
+      <div class="actions">
+        <button class="closeBtn" id="closeStoryBtn">關閉</button>
+      </div>
     </div>
 
     <div class="cursor" id="cursor"></div>
 
     <div class="tip" id="tip">
-      <b>操作</b>：把手放進鏡頭 → 向左/右揮動讓星空平移。<br/>
-      <b>點選</b>：食指尖靠近拇指尖「捏一下」，準星碰到星座就會跳出故事。
+      <b>操作</b>：把手放進鏡頭 → 左右揮動平移星空。<br/>
+      <b>點選</b>：食指尖靠近拇指尖「捏一下」，碰到星點就會跳出故事。
     </div>
 
     <div class="status" id="status">
       <div class="row">
-        <div class="badge"><span class="dot" id="dot"></span><span id="statusText">等待開啟攝像頭…</span></div>
+        <div class="badge">
+          <span class="dot" id="dot"></span>
+          <span class="txt" id="statusText">等待開啟攝像頭…</span>
+        </div>
         <div class="badge">偵測手：<b id="handState">0</b></div>
       </div>
       <div class="meta">
         <span>平移：<b id="panX">0</b></span>
         <span>手勢：<b id="gesture">—</b></span>
-        <span>提示：<b id="hint2">把手放入畫面</b></span>
+        <span>提示：<b id="hint2">把手放進畫面</b></span>
       </div>
     </div>
   </main>
@@ -214,6 +280,7 @@
 <script>
 (() => {
   const app = document.getElementById('app');
+  const stage = document.getElementById('stage');
   const canvas = document.getElementById('sky');
   const ctx = canvas.getContext('2d');
 
@@ -221,12 +288,15 @@
   const toggleCamBtn = document.getElementById('toggleCamBtn');
   const recenterBtn = document.getElementById('recenterBtn');
 
+  const blurLayer = document.getElementById('blur-layer');
   const storyEl = document.getElementById('story');
   const storyNameEl = document.getElementById('storyName');
   const storyTextEl = document.getElementById('storyText');
   const storyTagEl = document.getElementById('storyTag');
+  const closeStoryBtn = document.getElementById('closeStoryBtn');
 
   const cursorEl = document.getElementById('cursor');
+  const tipEl = document.getElementById('tip');
 
   const dotEl = document.getElementById('dot');
   const statusTextEl = document.getElementById('statusText');
@@ -235,7 +305,7 @@
   const gestureEl = document.getElementById('gesture');
   const hint2El = document.getElementById('hint2');
 
-  // ====== RWD canvas ======
+  // ====== Canvas RWD / DPR ======
   function resize(){
     const dpr = Math.max(1, window.devicePixelRatio || 1);
     canvas.width = Math.floor(canvas.clientWidth * dpr);
@@ -246,76 +316,132 @@
   ro.observe(canvas);
   resize();
 
-  // ====== 星空點點 ======
+  // ====== 星點背景 ======
   const stars = [];
   function initStars(){
     stars.length = 0;
     const w = canvas.clientWidth, h = canvas.clientHeight;
-    const count = Math.floor((w*h) / 14000); // 較省
+    const count = Math.floor((w*h) / 12000); // 稍微多一點但仍省
     for(let i=0;i<count;i++){
       stars.push({
         x: Math.random()*w,
         y: Math.random()*h,
         r: Math.random()*1.4 + 0.2,
-        a: Math.random()*0.6 + 0.2
+        a: Math.random()*0.55 + 0.18
       });
     }
   }
   initStars();
   window.addEventListener('resize', initStars);
 
-  // ====== 星座資料（你可自行加更多） ======
-  // position 以「世界座標」表示；會受 panX 影響
+  // ====== 星座資料（可自行加） ======
   const constellations = [
     {
       id:'aries', name:'牡羊座', tag:'火象 • 開端',
       story:`你點燃第一束火，世界才開始有方向。\n跌倒不是失敗，是你在測試勇氣的邊界。\n當你再踏一步，星空就為你讓路。`,
       points:[[-70,-20],[-20,-40],[10,-10],[40,-25],[70,-5]],
-      anchor:{x: 260, y: 220}
+      anchor:{x: 260, y: 220},
+      active:false
     },
     {
       id:'taurus', name:'金牛座', tag:'土象 • 守護',
       story:`你把混亂收進掌心，換成踏實的重量。\n慢不是遲鈍，是你在選擇更久的答案。\n你守住的，最後都會長成幸福。`,
       points:[[-60,10],[-20,-10],[10,10],[40,-20],[70,0]],
-      anchor:{x: 560, y: 320}
+      anchor:{x: 560, y: 320},
+      active:false
     },
     {
       id:'gemini', name:'雙子座', tag:'風象 • 兩面',
       story:`你用兩種語言和世界對話：一半真心，一半玩笑。\n每個轉身都像新劇本，卻都在找同一個自己。\n當你安靜下來，星星就會替你說完。`,
       points:[[-50,-30],[-30,10],[-10,-10],[10,20],[30,-15],[55,5]],
-      anchor:{x: 860, y: 210}
+      anchor:{x: 860, y: 210},
+      active:false
     },
     {
       id:'leo', name:'獅子座', tag:'火象 • 光',
       story:`你不是在追光，你本來就是光。\n有人看見你的耀眼，也有人害怕你的坦白。\n別收起王冠，溫柔也能很有力量。`,
       points:[[-65,0],[-30,-30],[0,-10],[25,-35],[55,-5],[25,20],[-5,25]],
-      anchor:{x: 360, y: 520}
+      anchor:{x: 360, y: 520},
+      active:false
     },
     {
       id:'scorpio', name:'天蠍座', tag:'水象 • 深海',
       story:`你把秘密藏得很深，是因為你很在乎。\n你愛得像海，安靜卻能改變地形。\n當你願意信任，夜就會變成路。`,
       points:[[-70,-5],[-35,-25],[-5,-5],[25,-20],[55,-5],[70,15]],
-      anchor:{x: 760, y: 520}
+      anchor:{x: 760, y: 520},
+      active:false
     }
   ];
 
-  // ====== 視野/平移 ======
-  let panX = 0;         // 星空水平偏移（px）
-  let panVX = 0;        // 慣性速度
-  const friction = 0.86;
-  const panSpeed = 1.25;
+  // ====== 世界平移：慣性 + 邊界回彈 ======
+  let panX = 0;
+  let panVX = 0;
 
-  // ====== 游標（手指） ======
-  let cursor = {x: canvas.clientWidth*0.5, y: canvas.clientHeight*0.5, on:false, pinch:false};
+  const PAN_LIMIT = 900;   // 你可調大/小：可滑動總寬
+  const FRICTION = 0.88;   // 慣性衰減
+  const SPRING = 0.08;     // 回彈力
+  const MAX_V = 28;        // 最大速度保護
 
-  // ====== 手勢判斷 ======
+  function updatePan(){
+    panX += panVX;
+    panVX *= FRICTION;
+
+    // 邊界回彈（橡皮筋）
+    if(panX > PAN_LIMIT){
+      panVX += (PAN_LIMIT - panX) * SPRING;
+    }else if(panX < -PAN_LIMIT){
+      panVX += (-PAN_LIMIT - panX) * SPRING;
+    }
+
+    // 小於門檻就停
+    if(Math.abs(panVX) < 0.02) panVX = 0;
+  }
+
+  // ====== 游標與手勢狀態 ======
+  let cursor = {x: 0, y: 0, on:false, pinch:false};
   let lastPalmX = null;
   let waveEnergy = 0;
 
-  // pinch 邏輯（食指尖與拇指尖距離）
   let pinchDown = false;
   let pinchCooldown = 0;
 
+  // 點到星座後「鎖定」世界，避免你說的抖動跑位
+  let locked = false;
+  let activeConstellation = null;
+
+  // ====== 粒子（星塵散開） ======
+  const particles = [];
+  function explode(x,y){
+    for(let i=0;i<22;i++){
+      particles.push({
+        x,y,
+        vx:(Math.random()-.5)*3.2,
+        vy:(Math.random()-.5)*3.2,
+        life:42
+      });
+    }
+  }
+  function drawParticles(){
+    for(let i=particles.length-1;i>=0;i--){
+      const p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vx *= 0.98;
+      p.vy *= 0.98;
+      p.life--;
+
+      ctx.globalAlpha = Math.max(0, p.life/42);
+      ctx.fillStyle = 'rgba(214,179,106,1)';
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,1.35,0,Math.PI*2);
+      ctx.fill();
+
+      if(p.life<=0) particles.splice(i,1);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // ====== UI 狀態 ======
   function setStatus(state, msg){
     if(state === 'on'){ dotEl.className = 'dot on'; }
     else if(state === 'warn'){ dotEl.className = 'dot warn'; }
@@ -323,26 +449,153 @@
     statusTextEl.textContent = msg;
   }
 
-  // ====== 畫星空/星座 ======
+  // ====== 繪圖 helpers ======
+  function wrap(x, offset, w, margin){
+    let v = x + offset;
+    const span = w + margin*2;
+    v = ((v + margin) % span + span) % span - margin;
+    return v;
+  }
+  function worldToScreen(x,y){
+    return {x: x + panX, y};
+  }
+
+  function drawConstellation(c){
+    const ax = c.anchor.x;
+    const ay = c.anchor.y;
+
+    // 線（一般/亮起）
+    ctx.beginPath();
+    c.points.forEach((p, i) => {
+      const x = ax + p[0];
+      const y = ay + p[1];
+      if(i===0) ctx.moveTo(x,y);
+      else ctx.lineTo(x,y);
+    });
+
+    if(c.active){
+      ctx.strokeStyle = 'rgba(214,179,106,.95)';
+      ctx.lineWidth = 1.8;
+      ctx.shadowColor = 'rgba(214,179,106,.55)';
+      ctx.shadowBlur = 10;
+    }else{
+      ctx.strokeStyle = 'rgba(255,255,255,.25)';
+      ctx.lineWidth = 1;
+      ctx.shadowBlur = 0;
+    }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // 星點
+    for(const p of c.points){
+      const x = ax + p[0];
+      const y = ay + p[1];
+      ctx.fillStyle = c.active ? 'rgba(255,255,255,.98)' : 'rgba(255,255,255,.92)';
+      ctx.beginPath();
+      ctx.arc(x,y,2.2,0,Math.PI*2);
+      ctx.fill();
+
+      // 亮起時加一圈淡光
+      if(c.active){
+        ctx.globalAlpha = 0.22;
+        ctx.beginPath();
+        ctx.arc(x,y,6.5,0,Math.PI*2);
+        ctx.fillStyle = 'rgba(214,179,106,1)';
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    // 名字（淡）
+    ctx.fillStyle = 'rgba(255,255,255,.45)';
+    ctx.font = '12px ui-sans-serif,system-ui,-apple-system,"Noto Sans TC","PingFang TC",sans-serif';
+    ctx.fillText(c.name, ax - 12, ay - 46);
+  }
+
+  function hitTestConstellation(screenX, screenY){
+    for(const c of constellations){
+      const a = worldToScreen(c.anchor.x, c.anchor.y);
+      // 星座大概範圍
+      const dx = screenX - a.x;
+      const dy = screenY - a.y;
+      const r = 95;
+      if(dx*dx + dy*dy > r*r) continue;
+
+      // 星點精準命中
+      for(const p of c.points){
+        const px = a.x + p[0];
+        const py = a.y + p[1];
+        const ddx = screenX - px;
+        const ddy = screenY - py;
+        if(ddx*ddx + ddy*ddy < 18*18) return c;
+      }
+    }
+    return null;
+  }
+
+  // ====== 故事卡 ======
+  function showStory(c){
+    storyNameEl.textContent = c.name;
+    storyTagEl.textContent = c.tag || 'Constellation';
+    storyTextEl.textContent = c.story;
+
+    storyEl.classList.add('on');
+    storyEl.setAttribute('aria-hidden','false');
+    blurLayer.classList.add('on');
+
+    locked = true;
+    activeConstellation = c;
+
+    // 停止慣性，避免你說的「註解跑位 / 抖動」
+    panVX = 0;
+  }
+
+  function hideStory(){
+    storyEl.classList.remove('on');
+    storyEl.setAttribute('aria-hidden','true');
+    blurLayer.classList.remove('on');
+
+    locked = false;
+    activeConstellation = null;
+    constellations.forEach(x=>x.active=false);
+  }
+
+  closeStoryBtn.addEventListener('click', hideStory);
+  window.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape') hideStory();
+  });
+
+  // ====== Tip：幾秒後自動淡出（避免手機擋住） ======
+  let tipTimer = 0;
+  function pokeTip(){
+    tipTimer = 220; // frames
+    tipEl.classList.remove('hide');
+  }
+  function updateTip(){
+    if(tipTimer>0) tipTimer--;
+    else tipEl.classList.add('hide');
+  }
+
+  // ====== 主要 draw loop ======
   function draw(){
     const w = canvas.clientWidth, h = canvas.clientHeight;
 
-    // 背景
     ctx.clearRect(0,0,w,h);
 
-    // 深色漸層
+    // 背景微光漸層
     const g = ctx.createRadialGradient(w*0.5, h*0.35, 40, w*0.5, h*0.5, Math.max(w,h));
-    g.addColorStop(0,'rgba(255,255,255,0.04)');
+    g.addColorStop(0,'rgba(255,255,255,0.045)');
     g.addColorStop(1,'rgba(0,0,0,0)');
     ctx.fillStyle = g;
     ctx.fillRect(0,0,w,h);
 
-    // 星點（隨 panX 平移）
+    // 世界層（受 panX 影響）
     ctx.save();
     ctx.translate(panX, 0);
 
+    // 星點（循環）
     for(const s of stars){
-      const x = wrap(s.x, -panX, w, 240); // 讓星點循環
+      const x = wrap(s.x, -panX, w, 240);
       const y = s.y;
       ctx.globalAlpha = s.a;
       ctx.fillStyle = 'white';
@@ -359,6 +612,9 @@
 
     ctx.restore();
 
+    // 粒子在螢幕座標（不跟 panX）
+    drawParticles();
+
     // 游標
     if(cursor.on){
       cursorEl.style.left = cursor.x + 'px';
@@ -369,106 +625,25 @@
       cursorEl.classList.toggle('on', false);
     }
 
-    // 慣性
-    panX += panVX;
-    panVX *= friction;
-    if(Math.abs(panVX) < 0.02) panVX = 0;
+    // 更新 pan（若鎖定就不動）
+    if(!locked) updatePan();
 
     // UI
     panXEl.textContent = Math.round(panX);
-
     if(pinchCooldown>0) pinchCooldown--;
+
+    updateTip();
 
     requestAnimationFrame(draw);
   }
 
-  function drawConstellation(c){
-    const ax = c.anchor.x;
-    const ay = c.anchor.y;
-
-    // 線
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = 'rgba(255,255,255,.28)';
-    ctx.beginPath();
-    c.points.forEach((p, i) => {
-      const x = ax + p[0];
-      const y = ay + p[1];
-      if(i===0) ctx.moveTo(x,y);
-      else ctx.lineTo(x,y);
-    });
-    ctx.stroke();
-
-    // 節點（星）
-    for(const p of c.points){
-      const x = ax + p[0];
-      const y = ay + p[1];
-      ctx.fillStyle = 'rgba(255,255,255,.92)';
-      ctx.beginPath();
-      ctx.arc(x,y,2.2,0,Math.PI*2);
-      ctx.fill();
-    }
-
-    // 名字（很淡）
-    ctx.fillStyle = 'rgba(255,255,255,.45)';
-    ctx.font = '12px ui-sans-serif,system-ui,-apple-system,"Noto Sans TC","PingFang TC",sans-serif';
-    ctx.fillText(c.name, ax - 12, ay - 46);
-  }
-
-  function wrap(x, offset, w, margin){
-    // 把星點 x 映射到可視範圍（循環）
-    let v = x + offset;
-    const span = w + margin*2;
-    v = ((v + margin) % span + span) % span - margin;
-    return v;
-  }
-
-  function worldToScreen(x,y){
-    // 世界座標 -> 螢幕座標（受 panX 影響）
-    return {x: x + panX, y};
-  }
-
-  function hitTestConstellation(screenX, screenY){
-    // 以星座 anchor 周圍做簡單圓形 hit，並再檢查是否接近某顆星點
-    for(const c of constellations){
-      const a = worldToScreen(c.anchor.x, c.anchor.y);
-      const dx = screenX - a.x;
-      const dy = screenY - a.y;
-      const r = 90; // 命中範圍
-      if(dx*dx + dy*dy > r*r) continue;
-
-      // 星點近距離命中（更像「點到星」）
-      for(const p of c.points){
-        const px = a.x + p[0];
-        const py = a.y + p[1];
-        const ddx = screenX - px;
-        const ddy = screenY - py;
-        if(ddx*ddx + ddy*ddy < 18*18) return c;
-      }
-      // 如果沒有點到星點，就不算
-    }
-    return null;
-  }
-
-  function showStory(c){
-    storyNameEl.textContent = c.name;
-    storyTagEl.textContent = c.tag || 'Constellation';
-    storyTextEl.textContent = c.story;
-    storyEl.classList.add('on');
-  }
-  function hideStory(){
-    storyEl.classList.remove('on');
-  }
-
-  window.addEventListener('keydown', (e) => {
-    if(e.key === 'Escape') hideStory();
-  });
-
-  // ====== MediaPipe Hands setup ======
+  // ====== MediaPipe Hands ======
   let camera = null;
 
   async function start(){
     setStatus('warn','請允許攝像頭權限，正在啟動手勢追蹤…');
     hint2El.textContent = '允許攝像頭權限';
+    pokeTip();
 
     const hands = new Hands({
       locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
@@ -476,7 +651,7 @@
 
     hands.setOptions({
       maxNumHands: 1,
-      modelComplexity: 0,      // 省資源
+      modelComplexity: 0,
       minDetectionConfidence: 0.6,
       minTrackingConfidence: 0.6
     });
@@ -493,7 +668,7 @@
 
     try{
       await camera.start();
-      setStatus('on','已開啟攝像頭：揮手平移｜捏合點星座');
+      setStatus('on','已開啟攝像頭：左右揮手平移｜捏合點星座');
       hint2El.textContent = '揮手/捏合試試看';
     }catch(err){
       console.error(err);
@@ -504,107 +679,171 @@
 
   function onResults(res){
     const lm = res.multiHandLandmarks && res.multiHandLandmarks[0];
+
     if(!lm){
       handStateEl.textContent = '0';
       gestureEl.textContent = '—';
       cursor.on = false;
       lastPalmX = null;
       waveEnergy *= 0.9;
-      setStatus('on','已開啟攝像頭：請把手放進畫面');
+
+      if(!locked){
+        setStatus('on','已開啟攝像頭：請把手放進畫面');
+        hint2El.textContent = '把手放進畫面';
+      }
       return;
     }
+
     handStateEl.textContent = '1';
     cursor.on = true;
 
-    // 取關鍵點：食指尖(8)、拇指尖(4)、掌心(0)
+    // 关键点：食指尖(8)、拇指尖(4)、手腕(0)
     const indexTip = lm[8];
     const thumbTip = lm[4];
     const wrist = lm[0];
 
-    // video 座標 -> canvas 螢幕座標
     const w = canvas.clientWidth, h = canvas.clientHeight;
 
-    // 這裡用 indexTip 當游標（鏡像更直覺：把 x 反轉）
+    // 游標（鏡像）
     const cx = (1 - indexTip.x) * w;
     const cy = indexTip.y * h;
 
-    // 簡單平滑
+    // 平滑
     cursor.x = cursor.x * 0.7 + cx * 0.3;
     cursor.y = cursor.y * 0.7 + cy * 0.3;
 
-    // ====== 揮手偵測：追 wrist x 的變化（鏡像）
+    // 揮手平移（未鎖定才允許）
     const palmX = (1 - wrist.x) * w;
-    if(lastPalmX != null){
-      const dx = palmX - lastPalmX;
-      // dx 大於門檻，就把速度加到 panVX
-      const thresh = 2.2;
-      if(Math.abs(dx) > thresh){
-        panVX += dx * 0.06 * panSpeed;
-        waveEnergy = Math.min(1, waveEnergy + 0.08);
-      }else{
-        waveEnergy *= 0.92;
+    if(!locked){
+      if(lastPalmX != null){
+        const dx = palmX - lastPalmX;
+        const thresh = 2.2;
+        if(Math.abs(dx) > thresh){
+          // 加速度到 panVX
+          panVX += dx * 0.06;
+          if(panVX > MAX_V) panVX = MAX_V;
+          if(panVX < -MAX_V) panVX = -MAX_V;
+          waveEnergy = Math.min(1, waveEnergy + 0.08);
+        }else{
+          waveEnergy *= 0.92;
+        }
       }
+      lastPalmX = palmX;
+    }else{
+      lastPalmX = null;
     }
-    lastPalmX = palmX;
 
-    // ====== pinch 偵測（食指與拇指距離）
+    // pinch（食指尖 vs 拇指尖距離）
     const dxp = (indexTip.x - thumbTip.x);
     const dyp = (indexTip.y - thumbTip.y);
     const dist = Math.sqrt(dxp*dxp + dyp*dyp);
 
-    // dist 越小越像捏合（依經驗 0.04~0.06）
     const pinch = dist < 0.055;
     cursor.pinch = pinch;
 
-    if(pinch){
-      gestureEl.textContent = '捏合(點一下)';
-      hint2El.textContent = '把準星對準星點';
+    // UI 文案
+    if(locked){
+      gestureEl.textContent = pinch ? '捏合(可關閉)' : '已鎖定';
+      hint2El.textContent = '捏合或按 Esc 關閉';
     }else{
-      gestureEl.textContent = waveEnergy > 0.35 ? '揮手(平移中)' : '追蹤中';
-      hint2El.textContent = '左右揮手移動星空';
+      if(pinch){
+        gestureEl.textContent = '捏合(點一下)';
+        hint2El.textContent = '把準星靠近星點';
+      }else{
+        gestureEl.textContent = waveEnergy > 0.35 ? '揮手(平移中)' : '追蹤中';
+        hint2El.textContent = '左右揮手移動星空';
+      }
     }
 
-    // 觸發「點一下」：pinch 從 false -> true
+    // 觸發：pinch 從 false -> true
     if(!pinchDown && pinch && pinchCooldown === 0){
       pinchDown = true;
-      pinchCooldown = 18; // 防止連發
+      pinchCooldown = 18;
 
+      // 若正在開啟故事 → pinch 視為關閉
+      if(locked){
+        hideStory();
+        pokeTip();
+        return;
+      }
+
+      // 點選命中
       const hit = hitTestConstellation(cursor.x, cursor.y);
       if(hit){
+        // 亮起 + 星塵爆開
+        constellations.forEach(c=>c.active=false);
+        hit.active = true;
+        explode(cursor.x, cursor.y);
+
+        setStatus('on', `命中 ${hit.name}：背景霧化並顯示故事`);
         showStory(hit);
+
+        // 點到就把 tip 收起一點
+        tipEl.classList.add('hide');
       }else{
-        // 沒點到星座：輕提示（不彈窗）
         setStatus('on','沒點到星座：再靠近某顆星點捏一下');
+        pokeTip();
       }
     }
     if(!pinch) pinchDown = false;
   }
 
-  // ====== UI Buttons ======
+  // ====== UI buttons ======
   toggleCamBtn.addEventListener('click', () => {
     app.classList.toggle('show-cam');
     toggleCamBtn.textContent = app.classList.contains('show-cam') ? '隱藏攝像頭' : '顯示攝像頭';
   });
 
   recenterBtn.addEventListener('click', () => {
+    if(locked) return;
     panX = 0; panVX = 0;
   });
 
-  // ====== 點滑鼠也能測試（非必要，但方便） ======
+  // ====== 滑鼠/觸控 fallback（方便你測試） ======
+  // 若手勢抓不到，也能拖曳平移、點擊星座開故事
+  let dragging = false;
+  let lastX = 0;
+  canvas.addEventListener('pointerdown', (e) => {
+    if(locked) return;
+    dragging = true;
+    lastX = e.clientX;
+    canvas.setPointerCapture(e.pointerId);
+  });
   canvas.addEventListener('pointermove', (e) => {
-    // 若尚未偵測手，滑鼠可以當游標
-    if(cursor.on) return;
     const rect = canvas.getBoundingClientRect();
     cursor.on = true;
     cursor.x = e.clientX - rect.left;
     cursor.y = e.clientY - rect.top;
-  });
-  canvas.addEventListener('pointerdown', (e) => {
-    if(cursor.on && !camera){
-      // 還沒開攝像頭，讓你也能點星座測試
-      const hit = hitTestConstellation(cursor.x, cursor.y);
-      if(hit) showStory(hit);
+    if(locked) return;
+
+    if(dragging){
+      const dx = e.clientX - lastX;
+      lastX = e.clientX;
+      panVX += dx * 0.25;
+      if(panVX > MAX_V) panVX = MAX_V;
+      if(panVX < -MAX_V) panVX = -MAX_V;
     }
+  });
+  canvas.addEventListener('pointerup', (e) => {
+    dragging = false;
+    canvas.releasePointerCapture(e.pointerId);
+  });
+  canvas.addEventListener('click', (e) => {
+    if(locked) return;
+    const hit = hitTestConstellation(cursor.x, cursor.y);
+    if(hit){
+      constellations.forEach(c=>c.active=false);
+      hit.active = true;
+      explode(cursor.x, cursor.y);
+      showStory(hit);
+      setStatus('on', `命中 ${hit.name}：背景霧化並顯示故事`);
+      tipEl.classList.add('hide');
+    }
+  });
+
+  // 點霧化層也能關閉
+  blurLayer.addEventListener('click', () => {
+    if(locked) hideStory();
   });
 
   // ====== init ======
