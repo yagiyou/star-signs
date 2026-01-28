@@ -1,1368 +1,935 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>個人接案作品集｜Rosegold Portfolio</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Crystal Sky • Constellations (Exhibition)</title>
 
-<!-- ✅ 有 JS 才加 .js class（沒 JS 也會正常顯示） -->
-<script>
-  document.documentElement.classList.add('js');
-</script>
+  <style>
+    :root{
+      --bg:#05060d;
+      --ink:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.68);
+      --line:rgba(255,255,255,.14);
+      --glass:rgba(10,12,22,.62);
+      --gold:#d6b36a;
+      --rose:#b76e79;
+      --shadow: 0 18px 60px rgba(0,0,0,.45);
+      --r:18px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%; margin:0; background:var(--bg); color:var(--ink);
+      font-family:ui-sans-serif,system-ui,-apple-system,"Noto Sans TC","PingFang TC",sans-serif;
+      overflow:hidden;
+    }
 
-<!-- 字體：襯線（標題）＋無襯線（內文） -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    /* layout */
+    .app{height:100%; width:100%; display:grid; grid-template-rows:auto 1fr;}
+    header{
+      position:relative;
+      z-index:30;
+      display:flex; align-items:center; justify-content:space-between;
+      padding:14px 16px;
+      border-bottom:1px solid var(--line);
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0));
+      backdrop-filter: blur(10px);
+    }
+    header .title{display:flex; gap:10px; align-items:baseline; min-width:0;}
+    header h1{font-size:14px; margin:0; letter-spacing:.4px; font-weight:900; white-space:nowrap;}
+    header .hint{font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:50vw;}
+    header .right{display:flex; gap:10px; align-items:center;}
+    button{
+      appearance:none; border:1px solid var(--line);
+      background:rgba(255,255,255,.06); color:var(--ink);
+      padding:8px 10px; border-radius:12px; cursor:pointer;
+      font-size:12px;
+      transition:.15s ease;
+    }
+    button:hover{background:rgba(255,255,255,.09)}
+    button:active{transform:translateY(1px)}
+    button.primary{
+      border-color: rgba(214,179,106,.35);
+      background: linear-gradient(180deg, rgba(214,179,106,.18), rgba(255,255,255,.06));
+    }
 
-<style>
-:root{
-  --rose:#b76e79;
-  --rose2:#d6a3ad;
-  --rose-soft:#f0d9dd;
+    .stage{position:relative; overflow:hidden;}
+    canvas#sky{width:100%; height:100%; display:block;}
+    canvas#fx{
+      position:absolute; inset:0;
+      width:100%; height:100%;
+      pointer-events:none;
+      z-index:12;
+    }
 
-  --text:#1f2430;
-  --muted:rgba(31,36,48,.66);
-  --line:rgba(31,36,48,.10);
+    /* camera */
+    video#cam{
+      position:absolute; right:12px; bottom:12px;
+      width:220px; height:140px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.18);
+      box-shadow:var(--shadow);
+      object-fit:cover;
+      opacity:0; pointer-events:none;
+      transform:translateY(10px);
+      transition:.25s ease;
+      background:#000;
+      z-index:20;
+    }
+    .show-cam video#cam{opacity:1; transform:translateY(0); pointer-events:auto;}
 
-  --bg:#ffffff;
-  --r:18px;
-  --max:1100px;
-  --shadow:0 18px 60px rgba(31,36,48,.10);
+    /* blur when showing story */
+    #blur-layer{
+      position:absolute; inset:0;
+      backdrop-filter: blur(16px);
+      background: rgba(5,6,13,.46);
+      opacity:0;
+      pointer-events:none;
+      transition: opacity .35s ease;
+      z-index:15;
+    }
+    #blur-layer.on{opacity:1;}
 
-  --serif: "Cormorant Garamond", serif;
-  --sans: system-ui,-apple-system,"Noto Sans TC","PingFang TC",sans-serif;
-}
+    /* fixed story card */
+    .story{
+      position:fixed;
+      left:50%;
+      top:50%;
+      transform:translate(-50%,-50%) scale(.96);
+      z-index:40;
 
-*{box-sizing:border-box}
-html,body{margin:0;padding:0}
-body{
-  font-family: var(--sans);
-  color:var(--text);
-  background:var(--bg);
-  line-height:1.85;
-  overflow-x:hidden;
-}
+      width:min(92vw, 540px);
+      max-height:min(72vh, 600px);
+      overflow:auto;
 
-/* =========================
-   ✅ 進站：霧面→顯現
-========================= */
-.js body{
-  opacity: 0;
-  filter: blur(16px) saturate(.9);
-  transform: translateY(10px);
-}
-.js body.is-ready{
-  opacity: 1;
-  filter: blur(0) saturate(1);
-  transform: translateY(0);
-  transition: opacity .7s ease, filter .9s ease, transform .8s ease;
-}
+      background:linear-gradient(180deg, rgba(12,14,26,.88), rgba(12,14,26,.62));
+      border:1px solid rgba(255,255,255,.14);
+      border-radius:18px;
+      padding:14px 14px 12px;
+      backdrop-filter: blur(12px);
+      box-shadow:var(--shadow);
 
-/* =========================
-   ✅ LOADING（全螢幕）
-========================= */
-.loader{
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  display:grid;
-  place-items:center;
-  background:
-    radial-gradient(1000px 700px at 50% 45%, rgba(240,217,221,.55), transparent 65%),
-    linear-gradient(180deg, #fff, #fff);
-  transition: opacity .5s ease, visibility .5s ease;
-}
-.loader.hide{
-  opacity:0;
-  visibility:hidden;
-  pointer-events:none;
-}
+      opacity:0;
+      pointer-events:none;
+      transition:.35s ease;
+    }
+    .story.on{
+      opacity:1;
+      transform:translate(-50%,-50%) scale(1);
+      pointer-events:auto;
+    }
+    .story .top{
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      margin-bottom:10px;
+    }
+    .story .name{
+      display:flex; gap:10px; align-items:center;
+      font-weight:1000; letter-spacing:.4px;
+    }
+    .pill{
+      font-size:11px; color:rgba(255,255,255,.78);
+      padding:4px 8px; border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.06);
+      white-space:nowrap;
+    }
+    .story p{
+      margin:0;
+      color:rgba(255,255,255,.88);
+      font-size:13px;
+      line-height:1.85;
+      white-space:pre-line;
+    }
+    .story .actions{
+      display:flex; justify-content:space-between; align-items:center; gap:10px;
+      margin-top:12px;
+    }
+    .story .closeBtn{
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.06);
+      color:rgba(255,255,255,.9);
+      padding:8px 10px;
+      border-radius:12px;
+      cursor:pointer;
+      font-size:12px;
+    }
 
-.loader-inner{
-  width: min(520px, 92vw);
-  display:grid;
-  place-items:center;
-  gap: 18px;
-  text-align:center;
-}
+    /* cursor */
+    .cursor{
+      position:absolute; width:16px; height:16px; border-radius:999px;
+      border:1px solid rgba(255,255,255,.35);
+      box-shadow:0 0 0 6px rgba(255,255,255,.08);
+      transform:translate(-50%,-50%);
+      pointer-events:none;
+      opacity:0;
+      transition: opacity .12s ease;
+      z-index:22;
+    }
+    .cursor.on{opacity:1;}
+    .cursor.pinch{
+      border-color:rgba(214,179,106,.95);
+      box-shadow:0 0 0 7px rgba(214,179,106,.18);
+    }
 
-/* 水晶：純 CSS（晶面慢慢長出玫瑰金） */
-.crystal{
-  width: 120px; height: 120px;
-  position: relative;
-  filter: drop-shadow(0 18px 30px rgba(183,110,121,.18));
-  transform-origin: 50% 60%;
-  animation: crystalFloat 2.3s ease-in-out infinite;
-}
-@keyframes crystalFloat{
-  0%,100%{ transform: translateY(0) rotate(-1deg); }
-  50%{ transform: translateY(-8px) rotate(1deg); }
-}
-.crystal::before{
-  content:"";
-  position:absolute;
-  inset: 0;
-  border-radius: 26px;
-  clip-path: polygon(50% 0%, 85% 18%, 100% 50%, 78% 100%, 22% 100%, 0% 50%, 15% 18%);
-  background:
-    radial-gradient(circle at 35% 25%, rgba(255,255,255,.95), rgba(255,255,255,0) 45%),
-    linear-gradient(135deg, rgba(220,176,185,.22), rgba(183,110,121,.10));
-  border: 1px solid rgba(183,110,121,.22);
-}
-.crystal::after{
-  content:"";
-  position:absolute;
-  inset:-2px;
-  border-radius: 26px;
-  clip-path: polygon(50% 0%, 85% 18%, 100% 50%, 78% 100%, 22% 100%, 0% 50%, 15% 18%);
-  background:
-    linear-gradient(120deg,
-      rgba(183,110,121,0) 0%,
-      rgba(183,110,121,.05) 20%,
-      rgba(214,163,173,.22) 42%,
-      rgba(183,110,121,.35) 62%,
-      rgba(183,110,121,0) 100%);
-  mix-blend-mode: multiply;
-  opacity: 0;
-  transform: scale(.98);
-  animation: growRose 1.6s ease forwards, shineSweep 1.8s ease 1.2s infinite;
-}
-@keyframes growRose{
-  0%{ opacity:0; transform: scale(.92); filter: blur(2px); }
-  100%{ opacity:1; transform: scale(1); filter: blur(0); }
-}
-@keyframes shineSweep{
-  0%{ background-position: -140px 0; }
-  100%{ background-position: 220px 0; }
-}
+    /* status */
+    .status{
+      position:absolute; left:12px; bottom:12px;
+      background:rgba(10,12,22,.56);
+      border:1px solid rgba(255,255,255,.14);
+      border-radius:16px;
+      padding:10px 12px;
+      width:min(560px, calc(100% - 24px));
+      box-shadow:var(--shadow);
+      backdrop-filter: blur(10px);
+      z-index:24;
+    }
+    .status .row{display:flex; gap:10px; align-items:center; justify-content:space-between;}
+    .badge{
+      font-size:12px; color:var(--muted);
+      display:flex; gap:8px; align-items:center; min-width:0;
+    }
+    .badge span.txt{
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+      max-width:62vw;
+    }
+    .dot{
+      width:8px; height:8px; border-radius:99px; background:rgba(255,255,255,.35);
+      box-shadow:0 0 0 3px rgba(255,255,255,.08);
+      flex:0 0 auto;
+    }
+    .dot.on{background:#63ff9a; box-shadow:0 0 0 3px rgba(99,255,154,.16)}
+    .dot.warn{background:#ffd36a; box-shadow:0 0 0 3px rgba(255,211,106,.16)}
+    .meta{
+      margin-top:8px;
+      font-size:12px; color:var(--muted);
+      display:flex; gap:12px; flex-wrap:wrap;
+    }
+    .meta span b{color:var(--ink); font-weight:900}
 
-.loader-title{
-  font-family: var(--serif);
-  font-weight: 700;
-  letter-spacing: .2px;
-  font-size: clamp(22px, 4vw, 34px);
-  line-height: 1.05;
-  margin:0;
-  opacity:.95;
-}
-.loader-sub{
-  margin:0;
-  color: rgba(31,36,48,.62);
-  font-weight: 800;
-  font-size: 13px;
-}
-.loader-bar{
-  width: min(380px, 82vw);
-  height: 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(31,36,48,.10);
-  background: rgba(31,36,48,.04);
-  overflow:hidden;
-}
-.loader-bar > i{
-  display:block;
-  height: 100%;
-  width: 0%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, rgba(183,110,121,.55), rgba(214,163,173,.25));
-  box-shadow: 0 10px 22px rgba(183,110,121,.10);
-}
+    /* Exhibition intro overlay */
+    .intro{
+      position:absolute; inset:0;
+      display:grid; place-items:center;
+      z-index:50;
+      background:
+        radial-gradient(circle at 50% 35%, rgba(214,179,106,.08), rgba(0,0,0,0) 55%),
+        radial-gradient(circle at 50% 65%, rgba(183,110,121,.06), rgba(0,0,0,0) 60%),
+        rgba(5,6,13,.78);
+      backdrop-filter: blur(10px);
+      transition: opacity .45s ease, transform .45s ease;
+      opacity:1;
+    }
+    .intro.off{
+      opacity:0;
+      pointer-events:none;
+      transform:translateY(-6px);
+    }
+    .intro .card{
+      width:min(92vw, 560px);
+      border-radius:22px;
+      border:1px solid rgba(255,255,255,.14);
+      background:linear-gradient(180deg, rgba(12,14,26,.86), rgba(12,14,26,.55));
+      box-shadow:var(--shadow);
+      padding:18px 18px 16px;
+    }
+    .intro h2{
+      margin:0 0 6px;
+      font-size:16px;
+      letter-spacing:.45px;
+      font-weight:1000;
+    }
+    .intro .sub{
+      color:rgba(255,255,255,.72);
+      font-size:12px;
+      line-height:1.7;
+      margin-bottom:14px;
+    }
+    .intro .grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+      margin-bottom:14px;
+    }
+    .intro .item{
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.04);
+      border-radius:16px;
+      padding:10px 10px;
+      font-size:12px;
+      color:rgba(255,255,255,.78);
+      line-height:1.7;
+    }
+    .intro .item b{color:rgba(255,255,255,.92)}
+    .intro .row{
+      display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; align-items:center;
+    }
+    .intro .small{
+      font-size:11px; color:rgba(255,255,255,.6);
+      margin-right:auto;
+    }
 
-/* =========================
-   背景：不重複 + 隨卷軸漂移
-========================= */
-.bg{
-  position:fixed;
-  inset:0;
-  z-index:-1;
-  pointer-events:none;
-  overflow:hidden;
-}
-.bg .layer{
-  position:absolute;
-  inset:-20%;
-  will-change: transform;
-  background-repeat:no-repeat;
-}
-.bg .l1{
-  background:
-    radial-gradient(650px 450px at 15% 18%, rgba(183,110,121,.16), transparent 68%),
-    radial-gradient(700px 500px at 85% 28%, rgba(214,163,173,.18), transparent 70%),
-    radial-gradient(560px 380px at 35% 88%, rgba(240,217,221,.40), transparent 72%);
-  background-size: cover;
-  opacity:.95;
-}
-.bg .l2{
-  background:
-    linear-gradient(120deg,
-      transparent 0%,
-      rgba(183,110,121,.08) 18%,
-      rgba(214,163,173,.12) 34%,
-      transparent 58%,
-      rgba(183,110,121,.06) 78%,
-      transparent 100%);
-  background-size: 1900px 1000px;
-  opacity:.75;
-  mix-blend-mode:multiply;
-}
-.bg .l3{
-  background:
-    radial-gradient(circle at 20% 35%, rgba(31,36,48,.04) 0 1px, transparent 2px),
-    radial-gradient(circle at 70% 55%, rgba(31,36,48,.03) 0 1px, transparent 2px),
-    radial-gradient(circle at 40% 78%, rgba(31,36,48,.03) 0 1px, transparent 2px);
-  background-size: 980px 760px;
-  opacity:.55;
-}
+    /* Ritual ring indicator */
+    .ritual{
+      position:absolute; left:50%; top:52%;
+      transform:translate(-50%,-50%);
+      width:min(72vmin, 520px); aspect-ratio:1/1;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      box-shadow: 0 0 0 10px rgba(255,255,255,.03);
+      opacity:.0;
+      pointer-events:none;
+      z-index:18;
+      transition: opacity .25s ease;
+    }
+    .intro:not(.off) .ritual{opacity:.85;}
+    .ritual::before{
+      content:"";
+      position:absolute; inset:16px;
+      border-radius:999px;
+      border:1px dashed rgba(214,179,106,.28);
+      box-shadow: inset 0 0 0 1px rgba(183,110,121,.12);
+    }
+    .ritual .txt{
+      position:absolute; left:50%; top:50%;
+      transform:translate(-50%,-50%);
+      width:80%;
+      text-align:center;
+      font-size:12px;
+      color:rgba(255,255,255,.72);
+      line-height:1.7;
+    }
+    .ritual .txt b{color:rgba(255,255,255,.92)}
+    .ritual .meter{
+      position:absolute; left:50%; top:50%;
+      transform:translate(-50%,-50%);
+      width:72%; height:10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.04);
+      overflow:hidden;
+      margin-top:64px;
+    }
+    .ritual .fill{
+      height:100%;
+      width:0%;
+      background:linear-gradient(90deg, rgba(214,179,106,.75), rgba(183,110,121,.55));
+      border-right:1px solid rgba(255,255,255,.18);
+      transition: width .12s linear;
+    }
 
-/* ===== Layout ===== */
-.wrap{
-  max-width:var(--max);
-  margin:0 auto;
-  padding: 22px 18px 100px;
-}
+    @media (max-width: 420px){
+      header .hint{display:none;}
+      video#cam{width:180px; height:120px;}
+      .intro .grid{grid-template-columns:1fr;}
+    }
+  </style>
 
-/* ===== Topbar ===== */
-.topbar{
-  position: sticky;
-  top:0;
-  z-index: 30;
-  backdrop-filter: blur(12px);
-  background: rgba(255,255,255,.72);
-  border-bottom:1px solid var(--line);
-}
-.topbar .inner{
-  max-width:var(--max);
-  margin:0 auto;
-  padding: 12px 18px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:12px;
-}
-.brand{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  user-select:none;
-}
-.mark{
-  width:34px;height:34px;border-radius:14px;
-  background:
-    radial-gradient(circle at 30% 20%, rgba(255,255,255,.9), rgba(255,255,255,0) 55%),
-    linear-gradient(135deg, rgba(183,110,121,.85), rgba(214,163,173,.35));
-  border:1px solid rgba(183,110,121,.22);
-  box-shadow: 0 12px 30px rgba(183,110,121,.16);
-}
-.brand b{font-weight:950}
-.brand small{display:block;color:var(--muted);font-weight:800;font-size:12px;margin-top:2px}
-.nav{
-  display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;
-}
-.nav a{
-  text-decoration:none;
-  color:var(--muted);
-  font-weight:900;
-  font-size:13px;
-  padding:8px 10px;
-  border-radius:999px;
-  border:1px solid transparent;
-  transition: .18s ease;
-}
-.nav a:hover{
-  color:var(--text);
-  background: rgba(183,110,121,.06);
-  border-color: rgba(183,110,121,.18);
-}
-.btn{
-  text-decoration:none;
-  color:var(--text);
-  font-weight:950;
-  font-size:13px;
-  padding:9px 12px;
-  border-radius:999px;
-  border:1px solid rgba(183,110,121,.26);
-  background: linear-gradient(135deg, rgba(183,110,121,.20), rgba(214,163,173,.10));
-  box-shadow: 0 12px 30px rgba(183,110,121,.12);
-  transition: transform .18s ease, filter .18s ease;
-  white-space:nowrap;
-}
-.btn:hover{ transform: translateY(-1px); filter: brightness(1.03); }
-
-/* ===== Shared card ===== */
-.card{
-  background: rgba(255,255,255,.82);
-  border:1px solid var(--line);
-  border-radius: calc(var(--r) + 8px);
-  box-shadow: var(--shadow);
-}
-
-/* ===== Hero ===== */
-.hero{
-  margin-top: 18px;
-  position:relative;
-  overflow:hidden;
-}
-.hero::before{
-  content:"";
-  position:absolute;
-  inset:-2px;
-  background:
-    radial-gradient(620px 420px at var(--mx, 30%) var(--my, 35%), rgba(183,110,121,.14), transparent 62%),
-    radial-gradient(520px 360px at calc(var(--mx, 30%) + 30%) calc(var(--my, 35%) + 25%), rgba(214,163,173,.14), transparent 65%);
-  pointer-events:none;
-}
-.hero-inner{
-  position:relative;
-  padding: 28px 22px;
-  display:grid;
-  grid-template-columns: 1.15fr .85fr;
-  gap: 16px;
-  align-items: stretch;
-}
-
-.pill{
-  display:inline-flex;
-  align-items:center;
-  gap:10px;
-  padding: 7px 12px;
-  border-radius:999px;
-  background: rgba(183,110,121,.08);
-  border:1px solid rgba(183,110,121,.18);
-  color: rgba(183,110,121,.95);
-  font-weight:950;
-  font-size:12px;
-  width: fit-content;
-}
-
-/* ✅ 你要的：Crystal Collection 彈跳式襯線字 */
-.hero-title{
-  margin: 12px 0 8px;
-  font-family: var(--serif);
-  font-weight: 700;
-  font-size: clamp(34px, 5.2vw, 56px);
-  line-height: 1.03;
-  letter-spacing: -.6px;
-}
-.hero-title .cc{
-  display:inline-block;
-  background: linear-gradient(135deg, rgba(183,110,121,.92), rgba(214,163,173,.55));
-  -webkit-background-clip:text;
-  background-clip:text;
-  color: transparent;
-}
-.js .hero-title{
-  transform: translateY(12px) scale(.98);
-  opacity: 0;
-}
-.js .hero-title.pop{
-  opacity:1;
-  transform: translateY(0) scale(1);
-  animation: ccPop .78s cubic-bezier(.2,.9,.2,1.2) both;
-}
-@keyframes ccPop{
-  0%{ transform: translateY(18px) scale(.92); }
-  60%{ transform: translateY(-6px) scale(1.03); }
-  100%{ transform: translateY(0) scale(1); }
-}
-
-.lead{
-  margin:0;
-  color: var(--muted);
-  font-size: 15px;
-  font-weight: 750;
-  max-width: 60ch;
-  white-space: pre-line;
-}
-.cta{
-  margin-top: 14px;
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-}
-.btn-ghost{
-  background: rgba(31,36,48,.03);
-  border-color: rgba(31,36,48,.10);
-  box-shadow:none;
-}
-.btn-ghost:hover{ transform: translateY(-1px); }
-
-.profile{
-  padding: 18px;
-  display:grid;
-  gap: 12px;
-  align-content:start;
-}
-
-/* ✅ 你要的：照片左→右滑入、簡介右→左淡入 */
-.avatar{
-  display:grid;
-  grid-template-columns: 90px 1fr;
-  gap: 14px;
-  align-items:center;
-}
-.photo{
-  width:90px; height:90px;
-  border-radius: 26px;
-  border:1px solid rgba(183,110,121,.22);
-  box-shadow: 0 14px 34px rgba(183,110,121,.14);
-  background:
-    radial-gradient(circle at 30% 20%, rgba(255,255,255,.9), rgba(255,255,255,0) 55%),
-    linear-gradient(135deg, rgba(214,163,173,.65), rgba(183,110,121,.20));
-  overflow:hidden;
-  position:relative;
-}
-.photo img{
-  width:100%; height:100%;
-  object-fit:cover;
-  display:block;
-}
-
-.js .photo{
-  opacity:0;
-  transform: translateX(-28px);
-}
-.js .photo.in{
-  opacity:1;
-  transform: translateX(0);
-  transition: opacity .7s ease, transform .7s ease;
-}
-
-.avatar b{ font-size: 15px; font-weight: 1000; }
-.avatar small{ display:block; margin-top:4px; color: var(--muted); font-weight: 800; }
-
-.about-text{
-  color:var(--muted);
-  font-weight:750;
-  font-size:14px;
-  line-height:1.9;
-}
-.js .about-text{
-  opacity:0;
-  transform: translateX(22px);
-}
-.js .about-text.in{
-  opacity:1;
-  transform: translateX(0);
-  transition: opacity .8s ease .08s, transform .8s ease .08s;
-}
-
-.pills{ display:flex; flex-wrap:wrap; gap:8px; }
-.pills span{
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgba(31,36,48,.04);
-  border: 1px solid rgba(31,36,48,.08);
-  color: rgba(31,36,48,.78);
-  font-weight: 900;
-  font-size: 12px;
-}
-.pills span.rose{
-  background: rgba(183,110,121,.10);
-  border-color: rgba(183,110,121,.18);
-  color: rgba(183,110,121,.95);
-}
-
-.contact{
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap:10px;
-}
-.contact a{
-  text-decoration:none;
-  padding: 10px 12px;
-  border-radius: 14px;
-  border:1px solid rgba(183,110,121,.18);
-  background: rgba(183,110,121,.06);
-  color: var(--text);
-  font-weight: 950;
-  font-size: 13px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  transition: .18s ease;
-}
-.contact a:hover{ transform: translateY(-1px); }
-
-/* ===== Section titles ===== */
-.section{ margin-top: 46px; }
-.section-title{
-  display:flex;
-  align-items:baseline;
-  justify-content:space-between;
-  gap:12px;
-  flex-wrap:wrap;
-  margin-bottom: 12px;
-}
-.section-title h2{
-  margin:0;
-  font-size: 18px;
-  font-weight: 1000;
-}
-.section-title span{
-  color: var(--muted);
-  font-weight: 800;
-  font-size: 13px;
-}
-
-/* ===== Works Gallery ===== */
-.grid{
-  display:grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: 14px;
-}
-.work{
-  grid-column: span 4;
-  border-radius: calc(var(--r) + 8px);
-  border:1px solid var(--line);
-  background: rgba(255,255,255,.86);
-  box-shadow: var(--shadow);
-  overflow:hidden;
-  cursor:pointer;
-  transform-style: preserve-3d;
-  will-change: transform;
-  transition: transform .18s ease, filter .18s ease, border-color .18s ease;
-}
-.work:hover{
-  border-color: rgba(183,110,121,.22);
-  filter: brightness(1.02);
-  transform: translateY(-3px);
-}
-.thumb{
-  height: 168px;
-  background:
-    radial-gradient(520px 260px at 20% 20%, rgba(183,110,121,.16), transparent 62%),
-    radial-gradient(520px 260px at 80% 25%, rgba(214,163,173,.14), transparent 60%),
-    linear-gradient(135deg, rgba(31,36,48,.06), rgba(31,36,48,0));
-  border-bottom:1px solid rgba(31,36,48,.08);
-  position:relative;
-  overflow:hidden;
-}
-.thumb img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  display:block;
-}
-.thumb .ph{
-  position:absolute;
-  inset: 14px;
-  border-radius: 16px;
-  border:1px dashed rgba(31,36,48,.16);
-  background: rgba(255,255,255,.45);
-  display:grid;
-  place-items:center;
-  color: rgba(31,36,48,.55);
-  font-weight: 900;
-  font-size: 12px;
-}
-.work-body{ padding: 14px 14px 16px; }
-.work-title{
-  margin:0 0 6px;
-  font-weight: 1000;
-  font-size: 15px;
-}
-.work-desc{
-  margin:0 0 12px;
-  color: var(--muted);
-  font-weight: 750;
-  font-size: 13px;
-  line-height: 1.75;
-  min-height: 42px;
-}
-.tags{ display:flex; gap:8px; flex-wrap:wrap; }
-.tag{
-  padding: 6px 10px;
-  border-radius:999px;
-  font-size: 12px;
-  font-weight: 900;
-  border:1px solid rgba(31,36,48,.10);
-  background: rgba(31,36,48,.03);
-  color: rgba(31,36,48,.76);
-}
-.tag.rose{
-  border-color: rgba(183,110,121,.20);
-  background: rgba(183,110,121,.08);
-  color: rgba(183,110,121,.95);
-}
-
-/* ===== Timeline ===== */
-.timeline{ margin-top: 12px; display:grid; gap: 14px; }
-.t-item{
-  display:grid;
-  grid-template-columns: 40px 1fr;
-  gap: 14px;
-  align-items:start;
-}
-.node{ display:flex; justify-content:center; position:relative; }
-.dot{
-  width:14px;height:14px;border-radius:999px;
-  background: linear-gradient(135deg, var(--rose), var(--rose2));
-  box-shadow: 0 0 0 8px rgba(183,110,121,.12);
-  border:1px solid rgba(183,110,121,.25);
-}
-.node::after{
-  content:"";
-  position:absolute;
-  top: 20px;
-  width: 2px;
-  height: 44px;
-  background: linear-gradient(180deg, rgba(183,110,121,.35), transparent);
-  border-radius: 99px;
-}
-.t-item:last-child .node::after{ display:none; }
-
-.t-card{ padding: 16px 16px 14px; }
-.t-card h3{
-  margin:0 0 4px;
-  font-size: 15px;
-  font-weight: 1000;
-}
-.meta{
-  color: rgba(183,110,121,.92);
-  font-weight: 950;
-  font-size: 12px;
-}
-.t-desc{
-  margin-top: 8px;
-  color: var(--muted);
-  font-weight: 750;
-  font-size: 13px;
-  line-height: 1.85;
-}
-
-/* ===== Reveal：保留你原本的（一般區塊） ===== */
-.reveal{ opacity:1; transform:none; }
-.js .reveal{ opacity:0; transform: translateY(14px); }
-.js .reveal.show{
-  opacity:1;
-  transform: translateY(0);
-  transition: opacity .65s ease, transform .65s ease;
-}
-
-/* ===== Modal（作品預覽） ===== */
-.modal{
-  position: fixed;
-  inset: 0;
-  background: rgba(31,36,48,.52);
-  backdrop-filter: blur(10px);
-  display:none;
-  align-items:center;
-  justify-content:center;
-  padding: 18px;
-  z-index: 80;
-}
-.modal.open{ display:flex; }
-.dialog{
-  width: min(980px, 100%);
-  border-radius: calc(var(--r) + 12px);
-  background: rgba(255,255,255,.92);
-  border:1px solid rgba(31,36,48,.10);
-  box-shadow: 0 28px 90px rgba(31,36,48,.25);
-  overflow:hidden;
-  transform: translateY(10px) scale(.985);
-  opacity:0;
-  transition: transform .22s ease, opacity .22s ease;
-}
-.modal.open .dialog{ transform: translateY(0) scale(1); opacity:1; }
-.dialog-top{
-  display:flex;
-  justify-content:space-between;
-  gap: 12px;
-  padding: 14px 14px 10px;
-  border-bottom: 1px solid rgba(31,36,48,.08);
-  background: rgba(183,110,121,.05);
-}
-.dialog-top h3{ margin:0; font-size: 16px; font-weight: 1000; }
-.dialog-top small{ display:block; margin-top:6px; color: var(--muted); font-weight: 800; }
-.close{
-  width: 40px; height: 40px;
-  border-radius: 14px;
-  border:1px solid rgba(31,36,48,.10);
-  background: rgba(255,255,255,.85);
-  cursor:pointer;
-  font-weight: 1000;
-}
-.dialog-main{
-  display:grid;
-  grid-template-columns: 1.2fr .8fr;
-  gap: 14px;
-  padding: 14px;
-}
-.preview{
-  min-height: 340px;
-  border-radius: 18px;
-  border:1px solid rgba(31,36,48,.10);
-  background: rgba(31,36,48,.03);
-  overflow:hidden;
-}
-.preview img{ width:100%; height:100%; object-fit:cover; display:block; }
-.preview .ph{
-  height: 100%;
-  display:grid;
-  place-items:center;
-  color: rgba(31,36,48,.55);
-  font-weight: 950;
-}
-
-.meta-box{
-  border-radius: 18px;
-  border:1px solid rgba(31,36,48,.10);
-  background: rgba(255,255,255,.75);
-  padding: 12px;
-  display:grid;
-  gap: 10px;
-  align-content:start;
-}
-.row{
-  display:flex;
-  justify-content:space-between;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  border:1px solid rgba(31,36,48,.08);
-  background: rgba(31,36,48,.02);
-}
-.row span{ color: var(--muted); font-weight: 900; font-size: 12px; }
-.row b{ font-weight: 950; font-size: 12px; color: rgba(31,36,48,.88); }
-.meta-box a{
-  text-decoration:none;
-  text-align:center;
-  padding: 11px 12px;
-  border-radius: 14px;
-  border:1px solid rgba(183,110,121,.22);
-  background: rgba(183,110,121,.10);
-  color: var(--text);
-  font-weight: 1000;
-}
-.meta-box a:hover{ filter: brightness(1.02); }
-
-/* ===== Footer ===== */
-footer{
-  margin-top: 40px;
-  padding-top: 18px;
-  border-top: 1px solid rgba(31,36,48,.10);
-  color: rgba(31,36,48,.55);
-  font-weight: 800;
-  font-size: 12px;
-  text-align:center;
-}
-
-/* =========================
-   ✅ 進入水晶洞確認視窗（自製）
-========================= */
-.portal{
-  position: fixed;
-  inset: 0;
-  z-index: 120;
-  display:none;
-  align-items:center;
-  justify-content:center;
-  padding: 18px;
-  background: rgba(31,36,48,.45);
-  backdrop-filter: blur(10px);
-}
-.portal.open{ display:flex; }
-.portal-card{
-  width: min(520px, 100%);
-  border-radius: calc(var(--r) + 14px);
-  background: rgba(255,255,255,.92);
-  border: 1px solid rgba(31,36,48,.10);
-  box-shadow: 0 30px 90px rgba(31,36,48,.22);
-  overflow:hidden;
-  transform: translateY(10px) scale(.99);
-  opacity:0;
-  transition: transform .22s ease, opacity .22s ease;
-}
-.portal.open .portal-card{ transform: translateY(0) scale(1); opacity:1; }
-
-.portal-top{
-  padding: 14px 16px 12px;
-  background: rgba(183,110,121,.07);
-  border-bottom: 1px solid rgba(31,36,48,.08);
-}
-.portal-top b{
-  display:block;
-  font-family: var(--serif);
-  font-size: 18px;
-  letter-spacing: .2px;
-}
-.portal-top small{
-  display:block;
-  margin-top: 6px;
-  color: var(--muted);
-  font-weight: 800;
-}
-
-.portal-body{
-  padding: 14px 16px 16px;
-  display:grid;
-  gap: 12px;
-}
-.portal-actions{
-  display:flex;
-  gap: 10px;
-}
-.portal-actions button{
-  flex:1;
-  padding: 12px 12px;
-  border-radius: 14px;
-  border:1px solid rgba(31,36,48,.10);
-  background: rgba(31,36,48,.03);
-  font-weight: 950;
-  cursor:pointer;
-  transition: transform .18s ease, filter .18s ease;
-}
-.portal-actions button:hover{ transform: translateY(-1px); filter: brightness(1.02); }
-.portal-actions .yes{
-  border-color: rgba(183,110,121,.25);
-  background: rgba(183,110,121,.12);
-}
-.portal-cry{
-  display:none;
-  text-align:center;
-  font-weight: 1000;
-  color: rgba(183,110,121,.95);
-  padding: 10px 8px 0;
-}
-.portal-cry i{
-  display:block;
-  font-style: normal;
-  font-size: 42px;
-  line-height: 1;
-  margin-bottom: 6px;
-}
-.portal-cry.show{ display:block; }
-
-/* ===== RWD ===== */
-@media(max-width: 980px){
-  .hero-inner{ grid-template-columns: 1fr; }
-  .contact{ grid-template-columns: 1fr; }
-  .dialog-main{ grid-template-columns: 1fr; }
-}
-@media(max-width: 860px){
-  .work{ grid-column: span 6; }
-}
-@media(max-width: 520px){
-  .work{ grid-column: span 12; }
-  .topbar .inner{ padding: 12px 14px; }
-  .wrap{ padding: 18px 14px 90px; }
-}
-</style>
+  <!-- MediaPipe Hands -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 </head>
 
 <body>
-  <!-- ✅ LOADING -->
-  <div class="loader" id="loader" aria-hidden="false">
-    <div class="loader-inner">
-      <div class="crystal" aria-hidden="true"></div>
-      <h1 class="loader-title">Crystal Collection</h1>
-      <p class="loader-sub">玫瑰金水晶生成中…</p>
-      <div class="loader-bar" aria-label="loading">
-        <i id="loaderFill"></i>
-      </div>
+<div class="app" id="app">
+  <header>
+    <div class="title">
+      <h1>Crystal Sky • Constellations</h1>
+      <div class="hint">揮手平移｜捏合點星座｜展覽模式</div>
     </div>
-  </div>
-
-  <div class="bg" aria-hidden="true">
-    <div class="layer l1" id="bg1"></div>
-    <div class="layer l2" id="bg2"></div>
-    <div class="layer l3" id="bg3"></div>
-  </div>
-
-  <header class="topbar">
-    <div class="inner">
-      <div class="brand">
-        <div class="mark"></div>
-        <div>
-          <b>接案專用作品集</b>
-          <small>2026 · Graphic Design & website</small>
-        </div>
-      </div>
-      <nav class="nav">
-        <a href="#about">關於我</a>
-        <a href="#works">作品</a>
-        <a href="#timeline">經歷</a>
-        <a class="btn" href="https://forms.gle/H5iJQWD7HvGtMYbb7" target="_blank" rel="noreferrer">合作洽談 →</a>
-      </nav>
+    <div class="right">
+      <button id="toggleCamBtn">顯示攝像頭</button>
+      <button id="recenterBtn">回到中心</button>
+      <button id="soundBtn" class="primary">音效：開</button>
     </div>
   </header>
 
-  <main class="wrap">
-    <!-- HERO -->
-    <section class="card hero reveal" id="top">
-      <div class="hero-inner">
-        <div>
-          <div class="pill">Crystal · Freelance Visual Designer</div>
+  <main class="stage" id="stage">
+    <canvas id="sky"></canvas>
+    <canvas id="fx"></canvas>
 
-          <!-- ✅ Crystal Collection 彈跳襯線 -->
-          <div class="hero-title" id="heroTitle">
-            <span class="cc">Crystal Collection</span><br/>
-            把品牌做出「辨識度」<br/>把畫面做出「信任感」
-          </div>
+    <div id="blur-layer"></div>
+    <video id="cam" playsinline muted></video>
 
-          <p class="lead">
-整合品牌視覺與行銷策略，從 LOGO／識別／包裝到網站一條龍完成。
-熟悉 Shopline 與 HTML/CSS 前端調整，打造一致、好用、能轉換的品牌體驗。
-          </p>
-          <div class="cta">
-            <a class="btn" href="#works">看作品 ↓</a>
-            <a class="btn btn-ghost" href="https://forms.gle/H5iJQWD7HvGtMYbb7" target="_blank" rel="noreferrer">我要合作</a>
-          </div>
+    <div class="story" id="story" aria-hidden="true">
+      <div class="top">
+        <div class="name">
+          <span id="storyName">—</span>
+          <span class="pill" id="storyTag">Constellation</span>
         </div>
-
-        <!-- Profile -->
-        <aside class="card profile reveal" id="about">
-          <div class="avatar">
-            <div class="photo" id="avatarPhoto" title="放你的個人照片">
-              <img src="https://yagidesign-studio.com/wp-content/uploads/2026/01/snimgJFUvbc.webp" alt="My photo">
-            </div>
-            <div>
-              <b>Crystal｜視覺設計 / 品品牌與網頁</b>
-              <small>品牌識別、一頁式形象網頁、活動頁</small>
-            </div>
-          </div>
-
-          <div class="pills">
-            <span class="rose">Branding</span>
-            <span>Web Visual</span>
-            <span>Shopline</span>
-            <span>Marketing Visual</span>
-            <span>HTML/CSS 微調</span>
-          </div>
-
-          <div class="about-text" id="aboutText">
-我是一位擅長把品牌故事轉化為有溫度視覺的設計師，從品牌識別、包裝到網站畫面，協助品牌建立清楚且一致的形象。
-除了視覺表現，我也熟悉 Shopline 網頁設計與 HTML / CSS 微調，能讓設計真正落實在實際銷售與使用流程中。
-我相信好的設計不只是好看，而是能幫助品牌被理解、被信任，並在市場中留下記憶點。
-          </div>
-
-          <div class="contact" id="contact">
-            <a href="mailto:crystallake0701@gmail.com">Email <span>✉</span></a>
-            <a href="https://yagidesign-studio.com/category/work/" target="_blank" rel="noreferrer">作品雲端 / Behance <span>↗</span></a>
-            <a href="https://www.threads.com/@crystal.vibes_0701" target="_blank" rel="noreferrer">IG / Threads <span>↗</span></a>
-            <a href="https://forms.gle/H5iJQWD7HvGtMYbb7" target="_blank" rel="noreferrer">報價 / 合作表單 <span>↗</span></a>
-          </div>
-        </aside>
+        <span class="pill">捏合 / Esc 關閉</span>
       </div>
-    </section>
-
-    <!-- WORKS -->
-    <section class="section" id="works">
-      <div class="section-title reveal">
-        <h2>精選作品</h2>
-        <span>點卡片可開啟預覽</span>
+      <p id="storyText">—</p>
+      <div class="actions">
+        <span class="pill" id="storyHint">提示：把準星靠近星點捏一下</span>
+        <button class="closeBtn" id="closeStoryBtn">關閉</button>
       </div>
+    </div>
 
-      <div class="grid" id="workGrid"></div>
-    </section>
+    <div class="cursor" id="cursor"></div>
 
-    <!-- TIMELINE -->
-    <section class="section" id="timeline">
-      <div class="section-title reveal">
-        <h2>工作經歷 / 接案歷程</h2>
-        <span>總年資：6–7 年</span>
+    <div class="status" id="status">
+      <div class="row">
+        <div class="badge">
+          <span class="dot" id="dot"></span>
+          <span class="txt" id="statusText">等待開啟攝像頭…</span>
+        </div>
+        <div class="badge">偵測手：<b id="handState">0</b></div>
       </div>
+      <div class="meta">
+        <span>平移：<b id="panX">0</b></span>
+        <span>手勢：<b id="gesture">—</b></span>
+        <span>狀態：<b id="mode">INTRO</b></span>
+      </div>
+    </div>
 
-      <div class="timeline" id="timelineList"></div>
-    </section>
-
-    <footer>© <span id="year"></span> Crystal 保留一切權利。</footer>
+    <!-- Exhibition Intro Overlay -->
+    <div class="intro" id="intro">
+      <div class="ritual">
+        <div class="txt">
+          <b>入場儀式</b>：把「拇指＋食指」捏住 1 秒<br/>
+          看見星門亮起後，即可進入星空。
+        </div>
+        <div class="meter"><div class="fill" id="ritualFill"></div></div>
+      </div>
+      <div class="card">
+        <h2>Crystal Sky • 展覽模式</h2>
+        <div class="sub">
+          這是一座可以用手勢探索的星座星空。<br/>
+          你可以「撥動」星海，也可以「捏合」點亮星座，聽見它的三行故事。
+        </div>
+        <div class="grid">
+          <div class="item"><b>揮手</b>：左右平移星空（含慣性＋回彈）</div>
+          <div class="item"><b>捏合</b>：點亮星座（霧化＋流光＋星塵）</div>
+          <div class="item"><b>關閉</b>：再捏合一次 / Esc</div>
+          <div class="item"><b>提示</b>：星座會像星盤一樣分布在天空</div>
+        </div>
+        <div class="row">
+          <span class="small">若沒反應：請允許攝像頭權限（建議 Chrome）</span>
+          <button id="startBtn" class="primary">開始（允許攝像頭）</button>
+        </div>
+      </div>
+    </div>
   </main>
-
-  <!-- Modal -->
-  <div class="modal" id="modal" aria-hidden="true">
-    <div class="dialog" role="dialog" aria-modal="true">
-      <div class="dialog-top">
-        <div>
-          <h3 id="mTitle">作品標題</h3>
-          <small id="mSub">分類 · 年份 · 角色</small>
-        </div>
-        <button class="close" id="mClose">✕</button>
-      </div>
-
-      <div class="dialog-main">
-        <div class="preview" id="mPreview">
-          <div class="ph">放大預覽（可放作品圖片）</div>
-        </div>
-
-        <div class="meta-box">
-          <div class="row"><span>亮點</span><b id="mHighlight">—</b></div>
-          <div class="row"><span>交付</span><b id="mDeliver">—</b></div>
-          <div class="row"><span>工具</span><b id="mTools">—</b></div>
-          <div class="row"><span>說明</span><b id="mDesc">—</b></div>
-          <a href="#" target="_blank" rel="noreferrer" id="mLink">查看作品連結 →</a>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ✅ 進入水晶洞確認視窗 -->
-  <div class="portal" id="portal" aria-hidden="true">
-    <div class="portal-card">
-      <div class="portal-top">
-        <b>你確定好進入水晶洞的世界一探究竟嗎？</b>
-        <small>Yes 進入作品區 · No 先不要（哭哭一下）</small>
-      </div>
-      <div class="portal-body">
-        <div class="portal-actions">
-          <button class="yes" id="portalYes">Yes，我準備好了 ✨</button>
-          <button id="portalNo">No…我還在猶豫</button>
-        </div>
-        <div class="portal-cry" id="portalCry">
-          <i>🥺</i>
-          嗚嗚…那我先帶你去 Google…
-        </div>
-      </div>
-    </div>
-  </div>
+</div>
 
 <script>
-/* =========================
-   ✅ 你只要改這兩區
-========================= */
-const works = [
-  {
-    title:"品牌識別｜LOGO & 規範",
-    year:"2026",
-    cat:"Branding",
-    role:"Logo · VI System",
-    highlight:"建立可延展的識別系統，讓品牌更一致",
-    deliver:"Logo / Guideline / Social Kit",
-    tools:"Illustrator · Figma",
-    desc:"以留白與玫瑰金建立高級感，延伸到名片與社群模板。",
-    link:"#",
-    thumb:"images/work01.jpg"
-  },
-  {
-    title:"互動一頁式形象網頁｜攝影師作品集",
-    year:"2026",
-    cat:"Web Visual",
-    role:"interactive web",
-    highlight:"透過抽卡牌的方式，讓人一進來網頁，就覺得很新奇，想繼續一探究竟。",
-    deliver:"一頁式形象網頁",
-    tools:"HTML / CSS / JS / RWD · GitHub",
-    desc:"用特殊的塔羅牌抽卡方式引導瀏覽，提高使用者的興趣。",
-    link:"https://yagiyou.github.io/haruka-ph/",
-    thumb:"images/work02.png"
-  },
-  {
-    title:"簡易型網頁｜線上菜單",
-    year:"2026",
-    cat:"Website Design",
-    role:"客製化一頁式網站",
-    highlight:"幫小型居酒屋，打造實用又符合店家風格的網頁。",
-    deliver:"一頁式網站",
-    tools:"HTML / CSS / JS / RWD · GitHub",
-    desc:"針對小型店家，一頁式網站能讓客人一目了然、操作方便，同時保留店家風格。",
-    link:"https://yagiyou.github.io/SUISEI-CLUB/",
-    thumb:"images/work01.png"
-  },
-  {
-    title:"包裝設計｜商品系列",
-    year:"2025",
-    cat:"Packaging",
-    role:"Packaging · Layout",
-    highlight:"用一致視覺規則，把小商品做出品牌感",
-    deliver:"Package / Label / Mockup",
-    tools:"Illustrator · Photoshop",
-    desc:"從主視覺到品項差異建立系統化邏輯。",
-    link:"#",
-    thumb:"images/work04.jpg"
-  },
-  {
-    title:"網站視覺｜版面美化",
-    year:"2025",
-    cat:"Web Visual",
-    role:"Web Visual · CSS",
-    highlight:"不改系統也能讓網站質感大升級",
-    deliver:"UI polish / Component style",
-    tools:"HTML · CSS",
-    desc:"用一致的間距、字級、按鈕與卡片規則，讓整站更乾淨。",
-    link:"#",
-    thumb:"images/work05.jpg"
-  },
-  {
-    title:"角色插畫｜品牌貼圖",
-    year:"2025",
-    cat:"Illustration",
-    role:"Character · Stickers",
-    highlight:"同一角色多表情多動作，保持一致辨識",
-    deliver:"Sticker set / Assets",
-    tools:"Procreate · Illustrator",
-    desc:"適合社群與行銷使用的角色素材組。",
-    link:"#",
-    thumb:"images/work06.jpg"
+(() => {
+  // ===== DOM =====
+  const app = document.getElementById('app');
+  const stage = document.getElementById('stage');
+
+  const sky = document.getElementById('sky');
+  const ctx = sky.getContext('2d');
+
+  const fx = document.getElementById('fx');
+  const fctx = fx.getContext('2d');
+
+  const intro = document.getElementById('intro');
+  const ritualFill = document.getElementById('ritualFill');
+
+  const video = document.getElementById('cam');
+  const toggleCamBtn = document.getElementById('toggleCamBtn');
+  const recenterBtn = document.getElementById('recenterBtn');
+  const soundBtn = document.getElementById('soundBtn');
+  const startBtn = document.getElementById('startBtn');
+
+  const blurLayer = document.getElementById('blur-layer');
+  const storyEl = document.getElementById('story');
+  const storyNameEl = document.getElementById('storyName');
+  const storyTextEl = document.getElementById('storyText');
+  const storyTagEl = document.getElementById('storyTag');
+  const storyHintEl = document.getElementById('storyHint');
+  const closeStoryBtn = document.getElementById('closeStoryBtn');
+
+  const cursorEl = document.getElementById('cursor');
+
+  const dotEl = document.getElementById('dot');
+  const statusTextEl = document.getElementById('statusText');
+  const handStateEl = document.getElementById('handState');
+  const panXEl = document.getElementById('panX');
+  const gestureEl = document.getElementById('gesture');
+  const modeEl = document.getElementById('mode');
+
+  // ===== Canvas DPR =====
+  function resize(){
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const w = stage.clientWidth;
+    const h = stage.clientHeight;
+
+    sky.width = Math.floor(w * dpr);
+    sky.height = Math.floor(h * dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+
+    fx.width = Math.floor(w * dpr);
+    fx.height = Math.floor(h * dpr);
+    fctx.setTransform(dpr,0,0,dpr,0,0);
   }
-];
+  const ro = new ResizeObserver(resize);
+  ro.observe(stage);
+  resize();
 
-const timelineItems = [
-  { date:"2024/9~在職中", title:"保衛站行銷部｜商業設計", desc:"美化公司官網、優化品牌識別，以商業目標為核心，做出一致、好讀、好轉換的視覺。" },
-  { date:"2021/5~2024/8", title:"山羊視覺設計｜視覺設計", desc:"與客戶溝通並以同理心理解需求，協助解決設計問題，並與合作夥伴共同完成專案。" },
-  { date:"2020/3~2021/4", title:"集美生技｜平面設計", desc:"品牌 VIS、禮盒包裝、展場設計規劃，以及每月商業廣告圖與包裝設計。" }
-];
+  // ===== Sound (WebAudio, no external files) =====
+  let audioOn = true;
+  let audioCtx = null;
 
-/* =========================
-   Utilities
-========================= */
-function escapeHTML(str){
-  return String(str ?? "")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
-function safeImg(src, alt){
-  const s = escapeHTML(src);
-  const a = escapeHTML(alt);
-  return `<img src="${s}" alt="${a}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=ph>圖片讀不到：${s}</div>';">`;
-}
-
-/* =========================
-   Render Works
-========================= */
-const grid = document.getElementById("workGrid");
-function tagRose(text){ return `<span class="tag rose">${escapeHTML(text)}</span>`; }
-function workHTML(w, idx){
-  const thumb = (w.thumb && String(w.thumb).trim())
-    ? safeImg(w.thumb, w.title)
-    : `<div class="ph">請填入：thumb:"images/work01.jpg"</div>`;
-  return `
-    <article class="work reveal" data-idx="${idx}">
-      <div class="thumb">${thumb}</div>
-      <div class="work-body">
-        <h3 class="work-title">${escapeHTML(w.title)}</h3>
-        <p class="work-desc">${escapeHTML(w.highlight)}</p>
-        <div class="tags">
-          ${tagRose(w.cat)}
-          <span class="tag">${escapeHTML(w.year)}</span>
-          <span class="tag">${escapeHTML(w.role)}</span>
-        </div>
-      </div>
-    </article>
-  `;
-}
-grid.innerHTML = works.map(workHTML).join("");
-
-/* =========================
-   Render Timeline
-========================= */
-const t = document.getElementById("timelineList");
-t.innerHTML = timelineItems.map(item => `
-  <div class="t-item reveal">
-    <div class="node"><div class="dot"></div></div>
-    <article class="card t-card">
-      <h3>${escapeHTML(item.title)}</h3>
-      <div class="meta">${escapeHTML(item.date)}</div>
-      <div class="t-desc">${escapeHTML(item.desc)}</div>
-    </article>
-  </div>
-`).join("");
-
-/* =========================
-   Reveal on scroll（含 fallback）
-========================= */
-(function setupReveal(){
-  const targets = document.querySelectorAll(".reveal");
-  if(!("IntersectionObserver" in window)){
-    targets.forEach(el => el.classList.add("show"));
-    return;
+  function ensureAudio(){
+    if(!audioOn) return null;
+    if(!audioCtx){
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if(audioCtx.state === 'suspended'){
+      audioCtx.resume().catch(()=>{});
+    }
+    return audioCtx;
   }
-  const io = new IntersectionObserver((entries)=>{
-    entries.forEach(en=>{
-      if(en.isIntersecting){
-        en.target.classList.add("show");
-        io.unobserve(en.target);
+
+  function beep(type='hit', t=0.08){
+    const ac = ensureAudio();
+    if(!ac) return;
+
+    const now = ac.currentTime;
+    const o = ac.createOscillator();
+    const g = ac.createGain();
+
+    if(type==='hit'){
+      o.type = 'triangle';
+      o.frequency.setValueAtTime(660, now);
+      o.frequency.exponentialRampToValueAtTime(420, now + t);
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(0.12, now + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + t);
+    }else if(type==='unlock'){
+      o.type = 'sine';
+      o.frequency.setValueAtTime(330, now);
+      o.frequency.exponentialRampToValueAtTime(880, now + 0.18);
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(0.14, now + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+    }else{
+      o.type = 'sine';
+      o.frequency.setValueAtTime(520, now);
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(0.08, now + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + t);
+    }
+
+    o.connect(g);
+    g.connect(ac.destination);
+    o.start(now);
+    o.stop(now + Math.max(t, 0.22));
+  }
+
+  soundBtn.addEventListener('click', async () => {
+    audioOn = !audioOn;
+    soundBtn.textContent = audioOn ? '音效：開' : '音效：關';
+    soundBtn.classList.toggle('primary', audioOn);
+    if(audioOn) ensureAudio();
+  });
+
+  // ===== Stars background =====
+  const stars = [];
+  function initStars(){
+    stars.length = 0;
+    const w = stage.clientWidth, h = stage.clientHeight;
+    const count = Math.floor((w*h) / 9000); // 展覽版稍微多一點
+    for(let i=0;i<count;i++){
+      stars.push({
+        x: Math.random()*w,
+        y: Math.random()*h,
+        r: Math.random()*1.6 + 0.2,
+        a: Math.random()*0.55 + 0.18,
+        tw: Math.random()*Math.PI*2
+      });
+    }
+  }
+  initStars();
+  window.addEventListener('resize', initStars);
+
+  // ===== Constellations: 12 signs in a "zodiac ring" distribution =====
+  // We'll place anchors in a ring, and allow panX to slide the ring left/right (like moving the sky).
+  // Each constellation has local points around its anchor.
+  const baseConstellations = [
+    {id:'aries', name:'牡羊座', tag:'火象 • 開端',
+      story:`你點燃第一束火，世界才開始有方向。\n跌倒不是失敗，是你在測試勇氣的邊界。\n當你再踏一步，星空就為你讓路。`,
+      points:[[-70,-20],[-20,-40],[10,-10],[40,-25],[70,-5]]},
+    {id:'taurus', name:'金牛座', tag:'土象 • 守護',
+      story:`你把混亂收進掌心，換成踏實的重量。\n慢不是遲鈍，是你在選擇更久的答案。\n你守住的，最後都會長成幸福。`,
+      points:[[-60,10],[-20,-10],[10,10],[40,-20],[70,0]]},
+    {id:'gemini', name:'雙子座', tag:'風象 • 兩面',
+      story:`你用兩種語言和世界對話：一半真心，一半玩笑。\n每個轉身都像新劇本，卻都在找同一個自己。\n當你安靜下來，星星就會替你說完。`,
+      points:[[-50,-30],[-30,10],[-10,-10],[10,20],[30,-15],[55,5]]},
+    {id:'cancer', name:'巨蟹座', tag:'水象 • 月光',
+      story:`你不是脆弱，只是記得太清楚。\n你用溫柔圍起世界，保護那些重要的名字。\n當你願意抬頭，月亮一直都在。`,
+      points:[[-40,-10],[-10,-30],[20,-10],[40,10],[10,30],[-20,20]]},
+    {id:'leo', name:'獅子座', tag:'火象 • 光',
+      story:`你不是在追光，你本來就是光。\n有人看見你的耀眼，也有人害怕你的坦白。\n別收起王冠，溫柔也能很有力量。`,
+      points:[[-65,0],[-30,-30],[0,-10],[25,-35],[55,-5],[25,20],[-5,25]]},
+    {id:'virgo', name:'處女座', tag:'土象 • 細節',
+      story:`你把世界拆解，是為了重新拼好。\n你在細節裡藏著溫柔，只是不張揚。\n當你放過自己，秩序會變成祝福。`,
+      points:[[-50,-20],[-20,-10],[0,-30],[25,-5],[45,-25],[65,0]]},
+    {id:'libra', name:'天秤座', tag:'風象 • 平衡',
+      story:`你站在選擇的中央，替世界衡量重量。\n你不是猶豫，是想讓每個人都被善待。\n當你傾聽內心，答案會自然傾斜。`,
+      points:[[-60,0],[-30,-20],[0,0],[30,-20],[60,0]]},
+    {id:'scorpio', name:'天蠍座', tag:'水象 • 深海',
+      story:`你把秘密藏得很深，是因為你很在乎。\n你愛得像海，安靜卻能改變地形。\n當你願意信任，夜就會變成路。`,
+      points:[[-70,-5],[-35,-25],[-5,-5],[25,-20],[55,-5],[70,15]]},
+    {id:'sagittarius', name:'射手座', tag:'火象 • 遠方',
+      story:`你相信世界不只一種答案。\n你走得很遠，只為確認自由是真的。\n當你回頭，故事已經跟上你了。`,
+      points:[[-60,-10],[-20,-30],[10,-10],[30,10],[60,30]]},
+    {id:'capricorn', name:'摩羯座', tag:'土象 • 山',
+      story:`你慢慢往上走，不急著被看見。\n你相信時間，因為你站得夠久。\n當你抵達時，世界已為你讓位。`,
+      points:[[-60,20],[-30,0],[0,20],[30,0],[60,20]]},
+    {id:'aquarius', name:'水瓶座', tag:'風象 • 未來',
+      story:`你走在時間前面，所以顯得不同。\n你帶來新的問題，也帶來新的出口。\n當世界準備好，你早已在那裡。`,
+      points:[[-60,-10],[-30,10],[0,-10],[30,10],[60,-10]]},
+    {id:'pisces', name:'雙魚座', tag:'水象 • 夢',
+      story:`你分不清現實與夢，因為你同時活在兩邊。\n你用感受理解世界，而不是語言。\n當你閉上眼，星海會替你說話。`,
+      points:[[-50,-20],[-20,0],[0,-20],[20,0],[50,-20]]},
+  ];
+
+  const constellations = baseConstellations.map(x => ({...x, anchor:{x:0,y:0}, active:false}));
+
+  function layoutZodiacRing(){
+    const w = stage.clientWidth, h = stage.clientHeight;
+    const cx = w*0.52;
+    const cy = h*0.52;
+    const R = Math.min(w,h) * 0.32;     // ring radius
+    const wobble = Math.min(w,h) * 0.04;
+
+    for(let i=0;i<constellations.length;i++){
+      // place 12 around ring
+      const a = (i/12)*Math.PI*2 - Math.PI/2;
+      const x = cx + Math.cos(a)*R + Math.cos(a*2.0)*wobble*0.35;
+      const y = cy + Math.sin(a)*R*0.78 + Math.sin(a*1.6)*wobble*0.25;
+      constellations[i].anchor.x = x;
+      constellations[i].anchor.y = y;
+    }
+  }
+  layoutZodiacRing();
+  window.addEventListener('resize', layoutZodiacRing);
+
+  // ===== Physics: pan with inertia + spring bounce =====
+  let panX = 0;
+  let panVX = 0;
+
+  // Wider limit for exhibition scanning
+  const PAN_LIMIT = 1100;
+  const FRICTION = 0.885;
+  const SPRING = 0.075;
+  const MAX_V = 30;
+
+  function updatePan(){
+    panX += panVX;
+    panVX *= FRICTION;
+
+    if(panX > PAN_LIMIT) panVX += (PAN_LIMIT - panX) * SPRING;
+    else if(panX < -PAN_LIMIT) panVX += (-PAN_LIMIT - panX) * SPRING;
+
+    if(Math.abs(panVX) < 0.02) panVX = 0;
+  }
+
+  // ===== Interaction states =====
+  let cursor = {x:0,y:0,on:false,pinch:false};
+  let lastPalmX = null;
+  let waveEnergy = 0;
+
+  let pinchDown = false;
+  let pinchCooldown = 0;
+
+  let locked = false;
+  let activeConstellation = null;
+
+  // Intro ritual: hold pinch to unlock
+  let started = false;
+  let unlocked = false;
+  let ritualHold = 0;         // frames holding pinch
+  const RITUAL_NEED = 60;     // ~1s at 60fps
+
+  // ===== Particles (screen space) =====
+  const particles = [];
+  function explode(x,y, n=26){
+    for(let i=0;i<n;i++){
+      const ang = Math.random()*Math.PI*2;
+      const sp = (Math.random()*0.9 + 0.35) * 3.2;
+      particles.push({
+        x,y,
+        vx: Math.cos(ang)*sp,
+        vy: Math.sin(ang)*sp,
+        life: 44 + Math.floor(Math.random()*12)
+      });
+    }
+  }
+
+  // ===== Flowing light on lines (FX canvas) =====
+  let flowT = 0;
+
+  // ===== Helpers =====
+  function setStatus(state, msg){
+    if(state === 'on'){ dotEl.className = 'dot on'; }
+    else if(state === 'warn'){ dotEl.className = 'dot warn'; }
+    else { dotEl.className = 'dot'; }
+    statusTextEl.textContent = msg;
+  }
+
+  function worldToScreen(x,y){ return {x: x + panX, y}; }
+
+  function hitTestConstellation(screenX, screenY){
+    for(const c of constellations){
+      const a = worldToScreen(c.anchor.x, c.anchor.y);
+      const dx = screenX - a.x;
+      const dy = screenY - a.y;
+      const r = 98;
+      if(dx*dx + dy*dy > r*r) continue;
+
+      for(const p of c.points){
+        const px = a.x + p[0];
+        const py = a.y + p[1];
+        const ddx = screenX - px;
+        const ddy = screenY - py;
+        if(ddx*ddx + ddy*ddy < 18*18) return c;
       }
+    }
+    return null;
+  }
+
+  function showStory(c){
+    storyNameEl.textContent = c.name;
+    storyTagEl.textContent = c.tag || 'Constellation';
+    storyTextEl.textContent = c.story;
+    storyHintEl.textContent = '提示：捏合 / Esc 關閉';
+
+    storyEl.classList.add('on');
+    storyEl.setAttribute('aria-hidden','false');
+    blurLayer.classList.add('on');
+
+    locked = true;
+    activeConstellation = c;
+    panVX = 0;
+  }
+  function hideStory(){
+    storyEl.classList.remove('on');
+    storyEl.setAttribute('aria-hidden','true');
+    blurLayer.classList.remove('on');
+
+    locked = false;
+    activeConstellation = null;
+    constellations.forEach(x=>x.active=false);
+  }
+  closeStoryBtn.addEventListener('click', hideStory);
+  window.addEventListener('keydown', (e) => { if(e.key==='Escape') hideStory(); });
+  blurLayer.addEventListener('click', () => { if(locked) hideStory(); });
+
+  // ===== Draw sky =====
+  function drawSky(){
+    const w = stage.clientWidth, h = stage.clientHeight;
+
+    // base bg
+    ctx.clearRect(0,0,w,h);
+
+    // subtle radial glow
+    const g1 = ctx.createRadialGradient(w*0.55, h*0.35, 40, w*0.5, h*0.5, Math.max(w,h));
+    g1.addColorStop(0,'rgba(255,255,255,0.05)');
+    g1.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle = g1;
+    ctx.fillRect(0,0,w,h);
+
+    // world translate
+    ctx.save();
+    ctx.translate(panX, 0);
+
+    // stars with twinkle
+    const t = performance.now()*0.001;
+    for(const s of stars){
+      const tw = (Math.sin(t*1.6 + s.tw) * 0.15 + 0.85);
+      ctx.globalAlpha = s.a * tw;
+      ctx.fillStyle = 'white';
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // draw "zodiac ring" faint guides (exhibition vibe)
+    const cx = w*0.52;
+    const cy = h*0.52;
+    const R = Math.min(w,h) * 0.32;
+
+    ctx.strokeStyle = 'rgba(255,255,255,.08)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI*2);
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(214,179,106,.08)';
+    ctx.beginPath();
+    ctx.arc(cx, cy, R*0.78, 0, Math.PI*2);
+    ctx.stroke();
+
+    // constellations
+    for(const c of constellations){
+      drawConstellation(ctx, c);
+    }
+
+    ctx.restore();
+  }
+
+  function drawConstellation(ctx, c){
+    const ax = c.anchor.x;
+    const ay = c.anchor.y;
+
+    // lines
+    ctx.beginPath();
+    c.points.forEach((p, i) => {
+      const x = ax + p[0];
+      const y = ay + p[1];
+      if(i===0) ctx.moveTo(x,y);
+      else ctx.lineTo(x,y);
     });
-  },{ threshold: 0.12 });
-  targets.forEach(el => io.observe(el));
-})();
 
-/* =========================
-   Hero mouse glow（安全判斷）
-========================= */
-const hero = document.querySelector(".hero");
-if(hero){
-  hero.addEventListener("mousemove",(e)=>{
-    const r = hero.getBoundingClientRect();
-    const mx = ((e.clientX - r.left) / r.width) * 100;
-    const my = ((e.clientY - r.top) / r.height) * 100;
-    hero.style.setProperty("--mx", mx + "%");
-    hero.style.setProperty("--my", my + "%");
-  });
-}
+    if(c.active){
+      ctx.strokeStyle = 'rgba(214,179,106,.95)';
+      ctx.lineWidth = 1.9;
+      ctx.shadowColor = 'rgba(214,179,106,.55)';
+      ctx.shadowBlur = 12;
+    }else{
+      ctx.strokeStyle = 'rgba(255,255,255,.22)';
+      ctx.lineWidth = 1;
+      ctx.shadowBlur = 0;
+    }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
 
-/* =========================
-   Background scroll parallax（安全判斷）
-========================= */
-const bg1 = document.getElementById("bg1");
-const bg2 = document.getElementById("bg2");
-const bg3 = document.getElementById("bg3");
-let raf=null;
-function onScroll(){
-  if(!bg1 || !bg2 || !bg3) return;
-  if(raf) return;
-  raf = requestAnimationFrame(()=>{
-    const y = window.scrollY || 0;
-    bg1.style.transform = `translate3d(0, ${y * -0.06}px, 0)`;
-    bg2.style.transform = `translate3d(0, ${y * -0.10}px, 0)`;
-    bg3.style.transform = `translate3d(0, ${y * -0.03}px, 0)`;
-    raf=null;
-  });
-}
-window.addEventListener("scroll", onScroll, {passive:true});
-onScroll();
+    // star points
+    for(const p of c.points){
+      const x = ax + p[0];
+      const y = ay + p[1];
+      ctx.fillStyle = c.active ? 'rgba(255,255,255,.98)' : 'rgba(255,255,255,.9)';
+      ctx.beginPath();
+      ctx.arc(x,y,2.2,0,Math.PI*2);
+      ctx.fill();
 
-/* =========================
-   Modal
-========================= */
-const modal = document.getElementById("modal");
-const mClose = document.getElementById("mClose");
-const mTitle = document.getElementById("mTitle");
-const mSub = document.getElementById("mSub");
-const mPreview = document.getElementById("mPreview");
-const mHighlight = document.getElementById("mHighlight");
-const mDeliver = document.getElementById("mDeliver");
-const mTools = document.getElementById("mTools");
-const mDesc = document.getElementById("mDesc");
-const mLink = document.getElementById("mLink");
+      if(c.active){
+        ctx.globalAlpha = 0.18;
+        ctx.fillStyle = 'rgba(214,179,106,1)';
+        ctx.beginPath();
+        ctx.arc(x,y,7.2,0,Math.PI*2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+    }
 
-function openModal(w){
-  if(!modal) return;
-  modal.classList.add("open");
-  modal.setAttribute("aria-hidden","false");
-  document.body.style.overflow="hidden";
-
-  mTitle.textContent = w.title || "作品";
-  mSub.textContent = `${w.cat || ""} · ${w.year || ""} · ${w.role || ""}`.replaceAll("  "," ").trim();
-  mHighlight.textContent = w.highlight || "—";
-  mDeliver.textContent = w.deliver || "—";
-  mTools.textContent = w.tools || "—";
-  mDesc.textContent = w.desc || "—";
-  mLink.href = w.link || "#";
-  mLink.style.opacity = w.link && w.link !== "#" ? 1 : .5;
-
-  if(w.thumb){
-    mPreview.innerHTML = safeImg(w.thumb, w.title);
-  }else{
-    mPreview.innerHTML = `<div class="ph">放大預覽（可放作品圖片）</div>`;
+    // name (faint)
+    ctx.fillStyle = 'rgba(255,255,255,.38)';
+    ctx.font = '12px ui-sans-serif,system-ui,-apple-system,"Noto Sans TC","PingFang TC",sans-serif';
+    ctx.fillText(c.name, ax - 14, ay - 48);
   }
-}
-function closeModal(){
-  if(!modal) return;
-  modal.classList.remove("open");
-  modal.setAttribute("aria-hidden","true");
-  document.body.style.overflow="";
-}
-if(mClose) mClose.addEventListener("click", closeModal);
-if(modal){
-  modal.addEventListener("click",(e)=>{ if(e.target === modal) closeModal(); });
-}
-window.addEventListener("keydown",(e)=>{ if(e.key === "Escape") closeModal(); });
 
-document.querySelectorAll(".work").forEach(card=>{
-  card.addEventListener("click", ()=>{
-    const idx = Number(card.dataset.idx);
-    openModal(works[idx]);
-  });
-});
-
-/* Footer year */
-const yearEl = document.getElementById("year");
-if(yearEl) yearEl.textContent = new Date().getFullYear();
-
-/* =========================
-   ✅ 進站流程總控（Loading → 霧面顯現 → 標題彈跳 → 進入確認視窗）
-========================= */
-(function introFlow(){
-  const loader = document.getElementById("loader");
-  const fill = document.getElementById("loaderFill");
-  const heroTitle = document.getElementById("heroTitle");
-  const avatarPhoto = document.getElementById("avatarPhoto");
-  const aboutText = document.getElementById("aboutText");
-
-  // 假進度（視覺用）
-  let p = 0;
-  const timer = setInterval(()=>{
-    p = Math.min(100, p + Math.random()*12);
-    if(fill) fill.style.width = p + "%";
-    if(p >= 100) clearInterval(timer);
-  }, 140);
-
-  // 等圖片/資源差不多了再收
-  window.addEventListener("load", ()=>{
-    // 讓 loading 至少存在一下，不要閃一下就沒
-    const minShow = 900;
-    setTimeout(()=>{
-      if(loader) loader.classList.add("hide");
-
-      // 霧面→顯現
-      document.body.classList.add("is-ready");
-
-      // 標題彈跳
-      setTimeout(()=> heroTitle && heroTitle.classList.add("pop"), 260);
-
-      // 你要的：照片左→右、簡介右→左
-      setTimeout(()=> avatarPhoto && avatarPhoto.classList.add("in"), 520);
-      setTimeout(()=> aboutText && aboutText.classList.add("in"), 620);
-
-      // 再跳出確認視窗
-      setTimeout(()=> openPortal(), 1050);
-
-    }, minShow);
-  });
-})();
-
-/* =========================
-   ✅ 進入水晶洞 Portal（Yes→作品區，No→哭哭→Google）
-========================= */
-const portal = document.getElementById("portal");
-const portalYes = document.getElementById("portalYes");
-const portalNo = document.getElementById("portalNo");
-const portalCry = document.getElementById("portalCry");
-
-function openPortal(){
-  if(!portal) return;
-  portal.classList.add("open");
-  portal.setAttribute("aria-hidden","false");
-  document.body.style.overflow="hidden";
-}
-function closePortal(){
-  if(!portal) return;
-  portal.classList.remove("open");
-  portal.setAttribute("aria-hidden","true");
-  document.body.style.overflow="";
-}
-
-if(portalYes){
-  portalYes.addEventListener("click", ()=>{
-    closePortal();
-    // 進入作品區
-    setTimeout(()=>{
-      document.getElementById("works")?.scrollIntoView({behavior:"smooth"});
-    }, 120);
-  });
-}
-
-if(portalNo){
-  portalNo.addEventListener("click", ()=>{
-    if(portalCry) portalCry.classList.add("show");
-    // 哭一下再跳 Google
-    setTimeout(()=>{
-      window.location.href = "https://www.google.com";
-    }, 1200);
-  });
-}
-
-// 點背景不關（你要更沈浸），但 Esc 允許關掉
-window.addEventListener("keydown",(e)=>{
-  if(e.key === "Escape"){
-    closePortal();
+  // ===== FX layer (flowing lines + particles) =====
+  function clearFx(){
+    const w = stage.clientWidth, h = stage.clientHeight;
+    fctx.clearRect(0,0,w,h);
   }
-});
-</script>
 
-</body>
-</html>
+  function drawParticles(){
+    for(let i=particles.length-1;i>=0;i--){
+      const p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vx *= 0.982;
+      p.vy *= 0.982;
+      p.life--;
+
+      const a = Math.max(0, p.life/56);
+      fctx.globalAlpha = a;
+      fctx.fillStyle = 'rgba(214,179,106,1)';
+      fctx.beginPath();
+      fctx.arc(p.x, p.y, 1.35, 0, Math.PI*2);
+      fctx.fill();
+
+      if(p.life<=0) particles.splice(i,1);
+    }
+    fctx.globalAlpha = 1;
+  }
+
+  function drawFlowingHighlight(c){
+    // draw a moving glow dot along the polyline
+    const a = worldToScreen(c.anchor.x, c.anchor.y);
+
+    // build polyline points
+    const pts = c.points.map(p => ({x: a.x + p[0], y: a.y + p[1]}));
+    if(pts.length < 2) return;
+
+    // lengths
+    const seg = [];
+    let total = 0;
+    for(let i=0;i<pts.length-1;i++){
+      const dx = pts[i+1].x - pts[i].x;
+      const dy = pts[i+1].y - pts[i].y;
+      const l = Math.hypot(dx,dy);
+      seg.push(l);
+      total += l;
+    }
+    if(total < 1) return;
+
+    // moving parameter
+    const u = (flowT % 1) * total;
+    let acc = 0, idx = 0;
+    for(; idx<seg.length; idx++){
+      if(acc + seg[idx] >= u) break;
+      acc += seg[idx];
+    }
+    const t = (u - acc) / (seg[idx] || 1);
+    const p0 = pts[idx];
+    const p1 = pts[idx+1];
+    const x = p0.x + (p1.x - p0.x) * t;
+    const y = p0.y + (p1.y - p0.y) * t;
+
+    // glow dot
+    fctx.globalAlpha = 0.9;
+    fctx.fillStyle = 'rgba(214,179,106,1)';
+    fctx.beginPath();
+    fctx.arc(x,y,2.1,0,Math.PI*2);
+    fctx.fill();
+
+    fctx.globalAlpha = 0.18;
+    fctx.beginPath();
+    fctx.arc(x,y,12,0,Math.PI*2);
+    fctx.fill();
+    fctx.globalAlpha = 1;
+  }
+
+  // ===== Cursor UI =====
+  function drawCursor(){
+    if(cursor.on){
+      cursorEl.style.left = cursor.x + 'px';
+      cursorEl.style.top = cursor.y + 'px';
+      cursorEl.classList.toggle('on', true);
+      cursorEl.classList.toggle('pinch', !!cursor.pinch);
+    }else{
+      cursorEl.classList.toggle('on', false);
+    }
+  }
+
+  // ===== Main loop =====
+  function loop(){
+    // update physics
+    if(!locked && unlocked) updatePan();
+
+    // animate flow
+    flowT += 0.016;
+
+    // draw
+    drawSky();
+    clearFx();
+
+    // flowing highlight only on active constellation
+    const active = constellations.find(x=>x.active);
+    if(active){
+      // draw a flowing highlight and a little extra sparkle
+      drawFlowingHighlight(active);
+    }
+
+    drawParticles();
+    drawCursor();
+
+    // UI
+    panXEl.textContent = Math.round(pan
